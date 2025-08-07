@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+import json
+from datetime import datetime 
 
 import gi
 
@@ -93,36 +95,43 @@ class Panel(ScreenPanel):
 
         self.labels['file'] = Gtk.Label(label="Filename", hexpand=True)
         self.labels['file'].get_style_context().add_class("printing-filename")
+        self.labels['file'].set_halign(Gtk.Align.CENTER)  # Center the filename
         self.labels['lcdmessage'] = Gtk.Label(no_show_all=True)
         self.labels['lcdmessage'].get_style_context().add_class("printing-status")
+        self.labels['lcdmessage'].set_halign(Gtk.Align.CENTER)  # Center the LCD message too
 
         for label in self.labels:
-            self.labels[label].set_halign(Gtk.Align.START)
+            if label not in ['file', 'lcdmessage']:  # Skip filename and LCD message
+                self.labels[label].set_halign(Gtk.Align.START)
             self.labels[label].set_ellipsize(Pango.EllipsizeMode.END)
 
         fi_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, valign=Gtk.Align.CENTER)
         fi_box.add(self.labels['file'])
         fi_box.add(self.labels['lcdmessage'])
-        self.grid.attach(fi_box, 1, 0, 3, 1)
+        self.grid.attach(fi_box, 0, 0, 4, 1)
 
+        # Add file icon above the progress circle
+        self.labels['file_icon'] = self._gtk.Image("file", self._gtk.font_size * 12)  
+        icon_box = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        icon_box.add(self.labels['file_icon'])
+        self.grid.attach(icon_box, 0, 1, 4, 1)
+
+        # Create a large progress circle in the center
         self.labels['darea'] = Gtk.DrawingArea()
         self.labels['darea'].connect("draw", self.on_draw)
 
-        box = Gtk.Box(halign=Gtk.Align.CENTER)
+        box = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         self.labels['progress_text'] = Gtk.Label(label="0%")
         self.labels['progress_text'].get_style_context().add_class("printing-progress-text")
         box.add(self.labels['progress_text'])
 
-        overlay = Gtk.Overlay(hexpand=True)
-        overlay.set_size_request(*(self._gtk.font_size * 5,) * 2)
+        overlay = Gtk.Overlay(hexpand=True, vexpand=True)
+        overlay.set_size_request(*(self._gtk.font_size * 15,) * 2)  # Make it larger
         overlay.add(self.labels['darea'])
         overlay.add_overlay(box)
-        self.grid.attach(overlay, 0, 0, 1, 1)
+        self.grid.attach(overlay, 0, 2, 4, 2)  # Move down to make room for icon
 
-        self.labels['thumbnail'] = self._gtk.Button("file")
-        self.labels['thumbnail'].connect("clicked", self.show_fullscreen_thumbnail)
-        self.labels['info_grid'] = Gtk.Grid()
-        self.labels['info_grid'].attach(self.labels['thumbnail'], 0, 0, 1, 1)
+        # Remove thumbnail and info grid since we don't need them
         self.current_extruder = self._printer.get_stat("toolhead", "extruder")
         if self.current_extruder:
             diameter = float(self._printer.get_config_section(self.current_extruder)['filament_diameter'])
@@ -131,210 +140,46 @@ class Panel(ScreenPanel):
         self.buttons = {}
         self.create_buttons()
         self.buttons['button_grid'] = Gtk.Grid(row_homogeneous=True, column_homogeneous=True, vexpand=False)
-        self.grid.attach(self.buttons['button_grid'], 0, 3, 4, 1)
+        self.grid.attach(self.buttons['button_grid'], 0, 4, 4, 1)  # Move down to accommodate icon
 
-        self.create_status_grid()
-        self.create_extrusion_grid()
-        self.create_time_grid()
-        self.create_move_grid()
-        self.grid.attach(self.labels['info_grid'], 0, 1, 4, 2)
-        self.switch_info(info=self.status_grid)
+        # Remove creation of info grids since we don't need them anymore
         self.content.add(self.grid)
-
-    def create_status_grid(self, widget=None):
-        buttons = {
-            'speed': self._gtk.Button("speed+", "-", None, self.bts, Gtk.PositionType.LEFT, 1),
-            'z': self._gtk.Button("home-z", "-", None, self.bts, Gtk.PositionType.LEFT, 1),
-            'extrusion': self._gtk.Button("extrude", "-", None, self.bts, Gtk.PositionType.LEFT, 1),
-            'fan': self._gtk.Button("fan", "-", None, self.bts, Gtk.PositionType.LEFT, 1),
-            'elapsed': self._gtk.Button("clock", "-", None, self.bts, Gtk.PositionType.LEFT, 1),
-            'left': self._gtk.Button("hourglass", "-", None, self.bts, Gtk.PositionType.LEFT, 1),
-        }
-        for button in buttons:
-            buttons[button].set_halign(Gtk.Align.START)
-        buttons['fan'].connect("clicked", self.menu_item_clicked, {"panel": "fan"})
-        self.buttons.update(buttons)
-
-        self.buttons['extruder'] = {}
-        for i, extruder in enumerate(self._printer.get_tools()):
-            self.labels[extruder] = Gtk.Label(label="-")
-            self.buttons['extruder'][extruder] = self._gtk.Button(f"extruder-{i}", "", None, self.bts,
-                                                                  Gtk.PositionType.LEFT, 1)
-            self.buttons['extruder'][extruder].set_label(self.labels[extruder].get_text())
-            self.buttons['extruder'][extruder].connect("clicked", self.menu_item_clicked,
-                                                       {"panel": "temperature",
-                                                        'extra': extruder})
-            self.buttons['extruder'][extruder].set_halign(Gtk.Align.START)
-
-        self.labels['temp_grid'] = Gtk.Grid()
-        nlimit = 2 if self._screen.width <= 500 else 3
-        n = 0
-        if nlimit > 2 and len(self._printer.get_tools()) == 2:
-            for extruder in self.buttons['extruder']:
-                self.labels['temp_grid'].attach(self.buttons['extruder'][extruder], n, 0, 1, 1)
-                n += 1
-        else:
-            self.current_extruder = self._printer.get_stat("toolhead", "extruder")
-            if self.current_extruder:
-                self.labels['temp_grid'].attach(self.buttons['extruder'][self.current_extruder], n, 0, 1, 1)
-                n += 1
-        self.buttons['heater'] = {}
-        for dev in self._printer.get_heaters():
-            if n >= nlimit:
-                break
-            if dev == "heater_bed":
-                self.buttons['heater'][dev] = self._gtk.Button("bed", "", None, self.bts, Gtk.PositionType.LEFT, 1)
-            else:
-                self.buttons['heater'][dev] = self._gtk.Button("heater", "", None, self.bts, Gtk.PositionType.LEFT, 1)
-            self.labels[dev] = Gtk.Label(label="-")
-
-            self.buttons['heater'][dev].set_label(self.labels[dev].get_text())
-            self.buttons['heater'][dev].connect("clicked", self.menu_item_clicked,
-                                                {"panel": "temperature", "extra": dev})
-            self.buttons['heater'][dev].set_halign(Gtk.Align.START)
-            self.labels['temp_grid'].attach(self.buttons['heater'][dev], n, 0, 1, 1)
-            n += 1
-        extra_item = not self._show_heater_power
-        if self.ks_printer_cfg is not None:
-            titlebar_items = self.ks_printer_cfg.get("titlebar_items", "")
-            if titlebar_items is not None:
-                titlebar_items = [str(i.strip()) for i in titlebar_items.split(',')]
-                logging.info(f"Titlebar items: {titlebar_items}")
-                for device in self._printer.get_temp_sensors():
-                    name = " ".join(device.split(" ")[1:])
-                    for item in titlebar_items:
-                        if name == item:
-                            if extra_item:
-                                extra_item = False
-                                nlimit += 1
-                            if n >= nlimit:
-                                break
-                            self.buttons['heater'][device] = self._gtk.Button("heat-up", "", None, self.bts,
-                                                                              Gtk.PositionType.LEFT, 1)
-                            self.labels[device] = Gtk.Label(label="-")
-                            self.buttons['heater'][device].set_label(self.labels[device].get_text())
-                            self.buttons['heater'][device].connect("clicked", self.menu_item_clicked,
-                                                                   {"panel": "temperature"})
-                            self.buttons['heater'][device].set_halign(Gtk.Align.START)
-                            self.labels['temp_grid'].attach(self.buttons['heater'][device], n, 0, 1, 1)
-                            n += 1
-                            break
-
-        szfe = Gtk.Grid(column_homogeneous=True)
-        szfe.attach(self.buttons['speed'], 0, 0, 3, 1)
-        szfe.attach(self.buttons['z'], 2, 0, 2, 1)
-        if self._printer.get_tools():
-            szfe.attach(self.buttons['extrusion'], 0, 1, 3, 1)
-        if self._printer.get_fans():
-            szfe.attach(self.buttons['fan'], 2, 1, 2, 1)
-
-        info = Gtk.Grid(row_homogeneous=True)
-        info.get_style_context().add_class("printing-info")
-        info.attach(self.labels['temp_grid'], 0, 0, 1, 1)
-        info.attach(szfe, 0, 1, 1, 2)
-        info.attach(self.buttons['elapsed'], 0, 3, 1, 1)
-        info.attach(self.buttons['left'], 0, 4, 1, 1)
-        self.status_grid = info
-
-    def create_extrusion_grid(self, widget=None):
-        goback = self._gtk.Button("back", None, "color1", self.bts, Gtk.PositionType.TOP, False)
-        goback.connect("clicked", self.switch_info, self.status_grid)
-        goback.set_hexpand(False)
-        goback.get_style_context().add_class("printing-info")
-
-        info = Gtk.Grid(hexpand=True, vexpand=True, halign=Gtk.Align.START)
-        info.get_style_context().add_class("printing-info-secondary")
-        info.attach(goback, 0, 0, 1, 6)
-        info.attach(self.labels['flow'], 1, 0, 1, 1)
-        info.attach(self.labels['extrude_factor'], 2, 0, 1, 1)
-        info.attach(self.labels['flowrate_lbl'], 1, 1, 1, 1)
-        info.attach(self.labels['flowrate'], 2, 1, 1, 1)
-        info.attach(self.labels['pa_lbl'], 1, 2, 1, 1)
-        info.attach(self.labels['advance'], 2, 2, 1, 1)
-        info.attach(self.labels['fila_used_lbl'], 1, 3, 1, 1)
-        info.attach(self.labels['filament_used'], 2, 3, 1, 1)
-        info.attach(self.labels['fila_total_lbl'], 1, 4, 1, 1)
-        info.attach(self.labels['filament_total'], 2, 4, 1, 1)
-        self.extrusion_grid = info
-        self.buttons['extrusion'].connect("clicked", self.switch_info, self.extrusion_grid)
-
-    def create_move_grid(self, widget=None):
-        goback = self._gtk.Button("back", None, "color2", self.bts, Gtk.PositionType.TOP, False)
-        goback.connect("clicked", self.switch_info, self.status_grid)
-        goback.set_hexpand(False)
-        goback.get_style_context().add_class("printing-info")
-
-        pos_box = Gtk.Box(spacing=5)
-        pos_box.add(self.labels['pos_x'])
-        pos_box.add(self.labels['pos_y'])
-        pos_box.add(self.labels['pos_z'])
-
-        info = Gtk.Grid(hexpand=True, vexpand=True, halign=Gtk.Align.START)
-        info.get_style_context().add_class("printing-info-secondary")
-        info.attach(goback, 0, 0, 1, 6)
-        info.attach(self.labels['speed_lbl'], 1, 0, 1, 1)
-        info.attach(self.labels['req_speed'], 2, 0, 1, 1)
-        info.attach(self.labels['accel_lbl'], 1, 1, 1, 1)
-        info.attach(self.labels['max_accel'], 2, 1, 1, 1)
-        info.attach(pos_box, 1, 2, 2, 1)
-        info.attach(self.labels['zoffset_lbl'], 1, 3, 1, 1)
-        info.attach(self.labels['zoffset'], 2, 3, 1, 1)
-        info.attach(self.labels['height_lbl'], 1, 4, 1, 1)
-        info.attach(self.labels['height'], 2, 4, 1, 1)
-        info.attach(self.labels['layer_lbl'], 1, 5, 1, 1)
-        info.attach(self.labels['layer'], 2, 5, 1, 1)
-        self.move_grid = info
-        self.buttons['z'].connect("clicked", self.switch_info, self.move_grid)
-        self.buttons['speed'].connect("clicked", self.switch_info, self.move_grid)
-
-    def create_time_grid(self, widget=None):
-        goback = self._gtk.Button("back", None, "color3", self.bts, Gtk.PositionType.TOP, False)
-        goback.connect("clicked", self.switch_info, self.status_grid)
-        goback.set_hexpand(False)
-
-        info = Gtk.Grid()
-        info.get_style_context().add_class("printing-info-secondary")
-        info.attach(goback, 0, 0, 1, 6)
-        info.attach(self.labels['elapsed'], 1, 0, 1, 1)
-        info.attach(self.labels['duration'], 2, 0, 1, 1)
-        info.attach(self.labels['left'], 1, 1, 1, 1)
-        info.attach(self.labels['time_left'], 2, 1, 1, 1)
-        info.attach(self.labels['total'], 1, 2, 1, 1)
-        info.attach(self.labels['est_time'], 2, 2, 1, 1)
-        info.attach(self.labels['slicer'], 1, 3, 1, 1)
-        info.attach(self.labels['slicer_time'], 2, 3, 1, 1)
-        info.attach(self.labels['file_tlbl'], 1, 4, 1, 1)
-        info.attach(self.labels['file_time'], 2, 4, 1, 1)
-        info.attach(self.labels['fila_tlbl'], 1, 5, 1, 1)
-        info.attach(self.labels['filament_time'], 2, 5, 1, 1)
-        self.time_grid = info
-        self.buttons['elapsed'].connect("clicked", self.switch_info, self.time_grid)
-        self.buttons['left'].connect("clicked", self.switch_info, self.time_grid)
-
-    def switch_info(self, widget=None, info=None):
-        if not info:
-            logging.debug("No info to attach")
-            return
-        if self._screen.vertical_mode:
-            self.labels['info_grid'].remove_row(1)
-            self.labels['info_grid'].attach(info, 0, 1, 1, 1)
-        else:
-            self.labels['info_grid'].remove_column(1)
-            self.labels['info_grid'].attach(info, 1, 0, 1, 1)
-        self.labels['info_grid'].show_all()
 
     def on_draw(self, da, ctx):
         w = da.get_allocated_width()
         h = da.get_allocated_height()
         r = min(w, h) * .42
 
-        ctx.set_source_rgb(0.13, 0.13, 0.13)
-        ctx.set_line_width(self._gtk.font_size * .75)
+        # Background circle with shadow effect
+        ctx.set_source_rgba(0.05, 0.05, 0.05, 0.8)  # Dark shadow
+        ctx.set_line_width(self._gtk.font_size * .9)
         ctx.translate(w / 2, h / 2)
+        ctx.arc(0, 0, r + 2, 0, 2 * pi)
+        ctx.stroke()
+
+        # Main background circle
+        ctx.set_source_rgb(0.15, 0.15, 0.15)  # Lighter dark background
+        ctx.set_line_width(self._gtk.font_size * .75)
         ctx.arc(0, 0, r, 0, 2 * pi)
         ctx.stroke()
-        ctx.set_source_rgb(0.718, 0.110, 0.110)
+
+        # Progress arc with gradient-like effect
+        # Inner glow effect
+        ctx.set_source_rgba(0.2, 0.6, 1.0, 0.3)  # Blue glow
+        ctx.set_line_width(self._gtk.font_size * 1.0)
         ctx.arc(0, 0, r, 3 / 2 * pi, 3 / 2 * pi + (self.progress * 2 * pi))
+        ctx.stroke()
+
+        # Main progress arc
+        ctx.set_source_rgb(0.2, 0.7, 1.0)  # Beautiful blue
+        ctx.set_line_width(self._gtk.font_size * .75)
+        ctx.arc(0, 0, r, 3 / 2 * pi, 3 / 2 * pi + (self.progress * 2 * pi))
+        ctx.stroke()
+
+        # Outer highlight
+        ctx.set_source_rgba(1.0, 1.0, 1.0, 0.6)  # White highlight
+        ctx.set_line_width(self._gtk.font_size * .2)
+        ctx.arc(0, 0, r + self._gtk.font_size * .4, 3 / 2 * pi, 3 / 2 * pi + (self.progress * 2 * pi))
         ctx.stroke()
 
     def activate(self):
@@ -345,6 +190,7 @@ class Panel(ScreenPanel):
 
     def deactivate(self):
         if self.flow_timeout is not None:
+            self.record_print_start_time()
             GLib.source_remove(self.flow_timeout)
             self.flow_timeout = None
         if self.animation_timeout is not None:
@@ -354,15 +200,15 @@ class Panel(ScreenPanel):
     def create_buttons(self):
 
         self.buttons = {
-            'cancel': self._gtk.Button("stop", _("Cancel"), "color2"),
-            'control': self._gtk.Button("settings", _("Settings"), "color3"),
-            'fine_tune': self._gtk.Button("fine-tune", _("Fine Tuning"), "color4"),
-            'menu': self._gtk.Button("complete", _("Main Menu"), "color4"),
-            'pause': self._gtk.Button("pause", _("Pause"), "color1"),
-            'restart': self._gtk.Button("refresh", _("Restart"), "color3"),
-            'resume': self._gtk.Button("resume", _("Resume"), "color1"),
-            'save_offset_probe': self._gtk.Button("home-z", _("Save Z") + "\n" + "Probe", "color1"),
-            'save_offset_endstop': self._gtk.Button("home-z", _("Save Z") + "\n" + "Endstop", "color2"),
+            'cancel': self._gtk.Button("stop", _("Cancel"), "red"),
+            'control': self._gtk.Button("settings", _("Settings"), "blue_move"),
+            'fine_tune': self._gtk.Button("fine-tune", _("Fine Tuning"), "blue_move"),
+            'menu': self._gtk.Button("complete", _("Main Menu"), "green"),
+            'pause': self._gtk.Button("pause", _("Pause"), "setting_move"),
+            'restart': self._gtk.Button("refresh", _("Restart"), "blue_move"),
+            'resume': self._gtk.Button("resume", _("Resume"), "arrows"),
+            'save_offset_probe': self._gtk.Button("home-z", _("Save Z") + "\n" + "Probe", "setting_move"),
+            'save_offset_endstop': self._gtk.Button("home-z", _("Save Z") + "\n" + "Endstop", "setting_move"),
         }
         self.buttons['cancel'].connect("clicked", self.cancel)
         self.buttons['control'].connect("clicked", self._screen._go_to_submenu, "")
@@ -415,6 +261,7 @@ class Panel(ScreenPanel):
                 self._screen._ws.klippy.gcode_script("SDCARD_RESET_FILE")
             self._screen._ws.klippy.print_start(self.filename)
             logging.info(f"Starting print: {self.filename}")
+            self.record_print_start_time()
             self.new_print()
         else:
             logging.info(f"Could not restart {self.filename}")
@@ -473,6 +320,26 @@ class Panel(ScreenPanel):
         self.update_progress(0.0)
         self.set_state("printing")
 
+        # --- ENREGISTREMENT DE L'HEURE DE PRINT ---
+        print_times_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'print_times.json')
+        today = datetime.now().strftime("%Y-%m-%d")
+        now_time = datetime.now().strftime("%H:%M")
+        try:
+            if os.path.exists(print_times_file) and os.path.getsize(print_times_file) > 0:
+                with open(print_times_file, 'r', encoding='utf-8') as f:
+                    times_data = json.load(f)
+            else:
+                times_data = {}
+            if today not in times_data:
+                times_data[today] = {"first": now_time, "last": now_time}
+            else:
+                times_data[today]["last"] = now_time
+            with open(print_times_file, 'w', encoding='utf-8') as f:
+                json.dump(times_data, f, indent=2, ensure_ascii=False)
+            logging.info(f"Print times updated: {today} - {times_data[today]}")
+        except Exception as e:
+            logging.error(f"Error while saving print times: {e}")
+
     def process_update(self, action, data):
         if action == "notify_gcode_response":
             if "action:cancel" in data:
@@ -496,10 +363,6 @@ class Panel(ScreenPanel):
                     self._printer.get_stat(x, "power"),
                     digits=0
                 )
-                if x in self.buttons['extruder']:
-                    self.buttons['extruder'][x].set_label(self.labels[x].get_text())
-                elif x in self.buttons['heater']:
-                    self.buttons['heater'][x].set_label(self.labels[x].get_text())
 
         if "display_status" in data and "message" in data["display_status"]:
             if data['display_status']['message']:
@@ -510,11 +373,7 @@ class Panel(ScreenPanel):
 
         if 'toolhead' in data:
             if 'extruder' in data['toolhead'] and data['toolhead']['extruder'] != self.current_extruder:
-                self.labels['temp_grid'].remove_column(0)
-                self.labels['temp_grid'].insert_column(0)
                 self.current_extruder = data["toolhead"]["extruder"]
-                self.labels['temp_grid'].attach(self.buttons['extruder'][self.current_extruder], 0, 0, 1, 1)
-                self._screen.show_all()
             if "max_accel" in data["toolhead"]:
                 self.labels['max_accel'].set_label(f"{data['toolhead']['max_accel']:.0f} {self.mms2}")
         if 'extruder' in data and 'pressure_advance' in data['extruder']:
@@ -523,32 +382,17 @@ class Panel(ScreenPanel):
         if 'gcode_move' in data:
             if 'gcode_position' in data['gcode_move']:
                 self.pos_z = round(float(data['gcode_move']['gcode_position'][2]), 2)
-                self.buttons['z'].set_label(
-                    f"Z: {self.pos_z:6.2f}{f'/{self.oheight}' if self.oheight > 0 else ''} "
-                    f"{f'{self.mm}' if self._screen.width > 500 else ''}"
-                )
             if 'extrude_factor' in data['gcode_move']:
                 self.extrusion = round(float(data['gcode_move']['extrude_factor']) * 100)
-                self.labels['extrude_factor'].set_label(f"{self.extrusion:3}%")
             if 'speed_factor' in data['gcode_move']:
                 self.speed = round(float(data['gcode_move']['speed_factor']) * 100)
                 self.speed_factor = float(data['gcode_move']['speed_factor'])
-                self.labels['speed_factor'].set_label(f"{self.speed:3}%")
             if 'speed' in data['gcode_move']:
                 self.req_speed = round(float(data["gcode_move"]["speed"]) / 60 * self.speed_factor)
-                self.labels['req_speed'].set_label(
-                    f"{self.speed}% {self.vel:3.0f}/{self.req_speed:3.0f} "
-                    f"{f'{self.mms}' if self.vel < 1000 and self.req_speed < 1000 and self._screen.width > 500 else ''}"
-                )
-                self.buttons['speed'].set_label(self.labels['req_speed'].get_label())
             if 'homing_origin' in data['gcode_move']:
                 self.zoffset = float(data['gcode_move']['homing_origin'][2])
-                self.labels['zoffset'].set_label(f"{self.zoffset:.3f} {self.mm}")
         if 'motion_report' in data:
             if 'live_position' in data['motion_report']:
-                self.labels['pos_x'].set_label(f"X: {data['motion_report']['live_position'][0]:6.2f}")
-                self.labels['pos_y'].set_label(f"Y: {data['motion_report']['live_position'][1]:6.2f}")
-                self.labels['pos_z'].set_label(f"Z: {data['motion_report']['live_position'][2]:6.2f}")
                 pos = data["motion_report"]["live_position"]
                 now = time()
                 if self.prev_pos is not None:
@@ -559,19 +403,10 @@ class Panel(ScreenPanel):
                 self.prev_pos = [pos, now]
             if 'live_velocity' in data['motion_report']:
                 self.vel = float(data["motion_report"]["live_velocity"])
-                self.labels['req_speed'].set_label(
-                    f"{self.speed}% {self.vel:3.0f}/{self.req_speed:3.0f} "
-                    f"{f'{self.mms}' if self.vel < 1000 and self.req_speed < 1000 and self._screen.width > 500 else ''}"
-                )
-                self.buttons['speed'].set_label(self.labels['req_speed'].get_label())
             if 'live_extruder_velocity' in data['motion_report']:
                 self.flowstore.append(self.fila_section * float(data["motion_report"]["live_extruder_velocity"]))
-        fan_label = ""
-        for fan in self.fans:
-            self.fans[fan]['speed'] = f"{self._printer.get_fan_speed(fan) * 100:3.0f}%"
-            fan_label += f" {self.fans[fan]['name']}{self.fans[fan]['speed']}"
-        if fan_label:
-            self.buttons['fan'].set_label(fan_label[:12])
+        
+        # Remove fan processing since we don't display it anymore
         if "print_stats" in data:
             if 'state' in data['print_stats']:
                 self.set_state(
@@ -581,21 +416,14 @@ class Panel(ScreenPanel):
             if 'filename' in data['print_stats']:
                 self.update_filename(data['print_stats']["filename"])
             if 'filament_used' in data['print_stats']:
-                self.labels['filament_used'].set_label(
-                    f"{float(data['print_stats']['filament_used']) / 1000:.1f} m"
-                )
+                # Keep the data but don't display it in buttons anymore
+                pass
             if 'info' in data["print_stats"]:
-                if ('total_layer' in data['print_stats']['info']
-                        and data["print_stats"]['info']['total_layer'] is not None):
-                    self.labels['total_layers'].set_label(f"{data['print_stats']['info']['total_layer']}")
-                if ('current_layer' in data['print_stats']['info']
-                        and data['print_stats']['info']['current_layer'] is not None):
-                    self.labels['layer'].set_label(
-                        f"{data['print_stats']['info']['current_layer']} / "
-                        f"{self.labels['total_layers'].get_text()}"
-                    )
+                # Keep layer info but don't display it
+                pass
             if 'total_duration' in data["print_stats"]:
-                self.labels["duration"].set_label(self.format_time(data["print_stats"]["total_duration"]))
+                # Keep duration but don't display it
+                pass
             if self.state in ["printing", "paused"]:
                 self.update_time_left()
 
@@ -604,8 +432,7 @@ class Panel(ScreenPanel):
             self.flowstore.append(0)
         self.flowrate = median(self.flowstore)
         self.flowstore = []
-        self.labels['flowrate'].set_label(f"{self.flowrate:.1f} {self.mms3}")
-        self.buttons['extrusion'].set_label(f"{self.extrusion:3}% {self.flowrate:5.1f} {self.mms3}")
+        # Remove button updates since we don't have those buttons anymore
         return True
 
     def update_time_left(self):
@@ -614,52 +441,8 @@ class Panel(ScreenPanel):
             / (self.file_metadata['gcode_end_byte'] - self.file_metadata['gcode_start_byte'])
         ) if "gcode_start_byte" in self.file_metadata else self._printer.get_stat('virtual_sdcard', 'progress')
 
-        elapsed_label = f"{self.labels['elapsed'].get_text()}  {self.labels['duration'].get_text()}"
-        self.buttons['elapsed'].set_label(elapsed_label)
-        find_widget(self.buttons['elapsed'], Gtk.Label).set_ellipsize(Pango.EllipsizeMode.END)
-
-        last_time = self.file_metadata['last_time'] if "last_time" in self.file_metadata else 0
-        slicer_time = self.file_metadata['estimated_time'] if 'estimated_time' in self.file_metadata else 0
-        print_duration = float(self._printer.get_stat('print_stats', 'print_duration'))
-        if print_duration < 1:  # No-extrusion
-            if last_time:
-                print_duration = last_time * progress
-            elif slicer_time:
-                print_duration = slicer_time * progress
-            else:
-                print_duration = float(self._printer.get_stat('print_stats', 'total_duration'))
-
-        fila_used = float(self._printer.get_stat('print_stats', 'filament_used'))
-        if 'filament_total' in self.file_metadata and self.file_metadata['filament_total'] >= fila_used > 0:
-            filament_time = (print_duration / (fila_used / self.file_metadata['filament_total']))
-            self.labels["filament_time"].set_label(self.format_time(filament_time))
-        else:
-            filament_time = 0
-        if progress > 0:
-            file_time = (print_duration / progress)
-            self.labels["file_time"].set_label(self.format_time(file_time))
-        else:
-            file_time = 0
-
-        estimated = 0
-        timeleft_type = self._config.get_config()['main'].get('print_estimate_method', 'auto')
-        if timeleft_type == "file":
-            estimated = file_time
-        elif timeleft_type == "filament":
-            estimated = filament_time
-        elif timeleft_type == "slicer":
-            estimated = slicer_time
-        else:
-            estimated = self.estimate_time(
-                progress, print_duration, file_time, filament_time, slicer_time, last_time
-            )
-        if estimated > 1:
-            progress = min(max(print_duration / estimated, 0), 1)
-            self.labels["est_time"].set_label(self.format_time(estimated))
-            self.labels["time_left"].set_label(self.format_eta(estimated, print_duration))
-            remaining_label = f"{self.labels['left'].get_text()}  {self.labels['time_left'].get_text()}"
-            self.buttons['left'].set_label(remaining_label)
-            find_widget(self.buttons['left'], Gtk.Label).set_ellipsize(Pango.EllipsizeMode.END)
+        # Remove button label updates since we don't have those buttons anymore
+        # Just keep the progress calculation
         self.update_progress(progress)
 
     def estimate_time(self, progress, print_duration, file_time, filament_time, slicer_time, last_time):
@@ -700,7 +483,15 @@ class Panel(ScreenPanel):
         elif state == "complete":
             self.update_progress(1)
             self._screen.set_panel_title(_("Complete"))
-            self.buttons['left'].set_label("-")
+            # Auto home Z axis and reset Z-offset to 0 after print completion
+            logging.info("Auto-homing Z axis and resetting Z-offset to 0.00 after print completion")
+            # First: Home Z axis (physical movement to home position)
+            self._screen._send_action(None, "printer.gcode.script", {"script": "G28 Z"})
+            # Second: Reset Z-offset to 0 (same as Fine Tuning reset button)
+            if self.zoffset != 0:
+                self._screen._send_action(None, "printer.gcode.script", {"script": "SET_GCODE_OFFSET Z=0 MOVE=1"})
+                self.zoffset = 0.0
+            self.save_print_history()
             self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif state == "error":
             self._screen.set_panel_title(_("Error"))
@@ -770,37 +561,6 @@ class Panel(ScreenPanel):
                 self.can_close = True
         self.content.show_all()
 
-    def show_file_thumbnail(self):
-        if self._screen.vertical_mode:
-            max_width = self._screen.width * 0.9
-            max_height = self._screen.height / 4
-        else:
-            max_width = self._screen.width * .25
-            max_height = self._gtk.content_height * 0.47
-        width = min(self.labels['thumbnail'].get_allocated_width(), max_width)
-        height = min(self.labels['thumbnail'].get_allocated_height(), max_height)
-        if width <= 1 or height <= 1:
-            width = max_width
-            height = max_height
-        pixbuf = self.get_file_image(self.filename, width, height)
-        if pixbuf is None:
-            logging.debug("no pixbuf")
-            return
-        if image := find_widget(self.labels['thumbnail'], Gtk.Image):
-            image.set_from_pixbuf(pixbuf)
-
-    def show_fullscreen_thumbnail(self, widget):
-        pixbuf = self.get_file_image(self.filename, self._screen.width * .9, self._screen.height * .75)
-        if pixbuf is None:
-            return
-        image = Gtk.Image.new_from_pixbuf(pixbuf)
-        image.set_vexpand(True)
-        self.thumb_dialog = self._gtk.Dialog(self.filename, None, image, self.close_dialog)
-
-    def close_dialog(self, dialog=None, response_id=None):
-        self._gtk.remove_dialog(dialog)
-        self.thumb_dialog = None
-
     def update_filename(self, filename):
         if not filename or filename == self.filename:
             return
@@ -808,10 +568,16 @@ class Panel(ScreenPanel):
         self.filename = filename
         logging.debug(f"Updating filename to {filename}")
         self.labels["file"].set_label(os.path.splitext(self.filename)[0])
+        
+        # Update the file icon based on filename
+        icon_name = self.get_file_icon(self.filename)
+        self.labels['file_icon'].set_from_pixbuf(self._gtk.PixbufFromIcon(icon_name, self._gtk.font_size * 12))  # Updated to match creation size
+        
         self.filename_label = {
             "complete": self.labels['file'].get_label(),
             "current": self.labels['file'].get_label(),
         }
+        
         self.get_file_metadata()
 
     def animate_label(self):
@@ -823,6 +589,20 @@ class Panel(ScreenPanel):
             self.labels['file'].set_label(self.filename_label['complete'])
         return True
 
+    def get_file_icon(self, filename):
+        """Determine the appropriate icon based on filename keywords"""
+        if not filename:
+            return "file"
+        filename_lower = filename.lower()
+        if "salmon" in filename_lower:
+            return "salmon"
+        elif "blanco" in filename_lower:
+            return "elblanco"
+        elif "prime" in filename_lower or "cut" in filename_lower:
+            return "primecut"
+        else:
+            return "file"
+
     def get_file_metadata(self, response=False):
         if self._files.file_metadata_exists(self.filename):
             self._update_file_metadata()
@@ -831,7 +611,6 @@ class Panel(ScreenPanel):
             self._files.request_metadata(self.filename)
         else:
             logging.debug("Cannot load file metadata")
-        self.show_file_thumbnail()
 
     def _update_file_metadata(self):
         self.file_metadata = self._files.get_file_info(self.filename)
@@ -849,3 +628,41 @@ class Panel(ScreenPanel):
             history = self._screen.apiclient.send_request(f"server/history/job?uid={self.file_metadata['job_id']}")
             if history and history['job']['status'] == "completed" and history['job']['print_duration']:
                 self.file_metadata["last_time"] = history['job']['print_duration']
+
+    def save_print_history(self):
+        """Saves the history of the completed print into the JSON file"""
+        if not self.filename:
+            return
+            
+        history_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'history.json')
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        try:
+            # Read the existing history file
+            if os.path.exists(history_file) and os.path.getsize(history_file) > 0:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    history_data = json.load(f)
+            else:
+                history_data = {}
+            
+            # Check if the file already exists in history
+            if self.filename in history_data:
+                # The file already exists
+                if today in history_data[self.filename]:
+                    # The day exists, increment the counter
+                    history_data[self.filename][today] += 1
+                else:
+                    # New day for this file
+                    history_data[self.filename][today] = 1
+            else:
+                # First time for this file
+                history_data[self.filename] = {today: 1}
+            
+            # Save the history file
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump(history_data, f, indent=2, ensure_ascii=False)
+                
+            logging.info(f"History saved: {self.filename} - {today} - {history_data[self.filename][today]} print(s)")
+            
+        except Exception as e:
+            logging.error(f"Error while saving history: {e}")

@@ -160,53 +160,23 @@ class BasePanel(ScreenPanel):
     def show_heaters(self, show=True):
         for child in self.control['temp_box'].get_children():
             self.control['temp_box'].remove(child)
-        if self._printer is None or not show:
-            return
-        try:
-            devices = self._printer.get_temp_devices()
-            if not devices:
-                return
-            img_size = self._gtk.img_scale * self.bts
-            for device in devices:
-                self.labels[device] = Gtk.Label(ellipsize=Pango.EllipsizeMode.START)
-                self.labels[f'{device}_box'] = Gtk.Box()
-                icon = self.get_icon(device, img_size)
-                if icon is not None:
-                    self.labels[f'{device}_box'].pack_start(icon, False, False, 3)
-                self.labels[f'{device}_box'].pack_start(self.labels[device], False, False, 0)
+        
+        # Create a horizontal box for icon + company name
+        company_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        company_box.set_halign(Gtk.Align.START)
+        
+        # Add company name label
+        company_label = Gtk.Label()
+        company_label.set_markup("<span font='35' weight='bold' foreground='#FFFFFF'>  Revo Foods</span>")
+        company_label.set_halign(Gtk.Align.START)
+        company_box.pack_start(company_label, False, False, 0)
 
-            # Limit the number of items according to resolution
-            nlimit = int(round(log(self._screen.width, 10) * 5 - 10.5))
-            n = 0
-            if len(self._printer.get_tools()) > (nlimit - 1):
-                self.current_extruder = self._printer.get_stat("toolhead", "extruder")
-                if self.current_extruder and f"{self.current_extruder}_box" in self.labels:
-                    self.control['temp_box'].add(self.labels[f"{self.current_extruder}_box"])
-            else:
-                self.current_extruder = False
-            for device in devices:
-                if n >= nlimit:
-                    break
-                if device.startswith("extruder") and self.current_extruder is False:
-                    self.control['temp_box'].add(self.labels[f"{device}_box"])
-                    n += 1
-                elif device.startswith("heater"):
-                    self.control['temp_box'].add(self.labels[f"{device}_box"])
-                    n += 1
-            for device in devices:
-                # Users can fill the bar if they want
-                if n >= nlimit + 1:
-                    break
-                name = device.split()[1] if len(device.split()) > 1 else device
-                for item in self.titlebar_items:
-                    if name == item:
-                        self.control['temp_box'].add(self.labels[f"{device}_box"])
-                        n += 1
-                        break
-
-            self.control['temp_box'].show_all()
-        except Exception as e:
-            logging.debug(f"Couldn't create heaters box: {e}")
+        # Add Revo icon (small size)
+        revo_icon = self._gtk.Image("revo", 36, 36)  # Small icon 24x24 pixels
+        company_box.pack_start(revo_icon, False, False, 0)
+        
+        self.control['temp_box'].pack_start(company_box, True, True, 0)
+        self.control['temp_box'].show_all()
 
     def get_icon(self, device, img_size):
         if device.startswith("extruder"):

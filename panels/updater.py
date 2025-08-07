@@ -19,7 +19,7 @@ class Panel(ScreenPanel):
             "update_all": self._gtk.Button(
                 image_name="arrow-up",
                 label=_("Full Update"),
-                style="color1",
+                style="setting_move",
                 scale=self.bts,
                 position=Gtk.PositionType.LEFT,
                 lines=1,
@@ -27,7 +27,7 @@ class Panel(ScreenPanel):
             "refresh": self._gtk.Button(
                 image_name="arrow-down",
                 label=_("Refresh"),
-                style="color3",
+                style="blue_move",
                 scale=self.bts,
                 position=Gtk.PositionType.LEFT,
                 lines=1,
@@ -79,7 +79,7 @@ class Panel(ScreenPanel):
                     self.buttons[f"{prog}_restart"] = self._gtk.Button(
                         "refresh",
                         _("Restart"),
-                        "color2",
+                        "setting_blue2",
                         position=Gtk.PositionType.LEFT,
                         scale=self.bts,
                     )

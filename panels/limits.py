@@ -102,7 +102,7 @@ class Panel(ScreenPanel):
         scale.connect("button-release-event", self.set_opt_value, option)
         self.values[option['option']] = option['value']
 
-        reset = self._gtk.Button("refresh", style="color1")
+        reset = self._gtk.Button("refresh", style="arrows")
         reset.connect("clicked", self.reset_value, option['option'])
         reset.set_hexpand(False)
 

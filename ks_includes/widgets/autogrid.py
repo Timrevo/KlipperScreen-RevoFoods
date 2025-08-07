@@ -26,17 +26,27 @@ class AutoGrid(Gtk.Grid):
         if not items:
             return
         length = len(items)
+
+        # Custom layout for 5 items (2-2-1 arrangement)
+        if length == 5:
+            columns = 2
+            for i, widget in enumerate(items):
+                if i < 4:  # First 4 items in 2x2 grid
+                    col = i % 2
+                    row = int(i / 2)
+                    self.attach(widget, col, row, 1, 1)
+                else:  # Last item centered on bottom row
+                    self.attach(widget, 0, 2, 2, 1)  # span 2 columns
+            return
+
+        # Original arrangement for other cases
         if vertical and length < 4:
-            # Arrange 1 x 4
             columns = 1
         elif length in {4, 2}:
-            # Arrange 2 x 2
             columns = min(2, max_columns)
-        elif length in {3, 5, 6}:
-            # Arrange 3 x 2
+        elif length in {3, 6}:  # Modified to exclude 5
             columns = min(3, max_columns)
         else:
-            # Arrange 4 x n
             columns = min(4, max_columns)
 
         for i, widget in enumerate(items):

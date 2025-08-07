@@ -70,7 +70,7 @@ class Panel(ScreenPanel):
             self.labels['interface'].set_text(_("Interface") + f': {self.interface}')
             self.labels['ip'].set_text(f"IP: {self.sdbus_nm.get_ip_address()}")
 
-        self.reload_button = self._gtk.Button("refresh", None, "color1", self.bts)
+        self.reload_button = self._gtk.Button("refresh", None, "arrows", self.bts)
         self.reload_button.set_no_show_all(True)
         self.reload_button.show()
         self.reload_button.connect("clicked", self.reload_networks)
@@ -124,12 +124,12 @@ class Panel(ScreenPanel):
         net = next(net for net in self.sdbus_nm.get_networks() if bssid == net['BSSID'])
         ssid = net['SSID']
 
-        connect = self._gtk.Button("load", None, "color3", self.bts)
+        connect = self._gtk.Button("load", None, "setting_blue4", self.bts)
         connect.connect("clicked", self.connect_network, ssid)
         connect.set_hexpand(False)
         connect.set_halign(Gtk.Align.END)
 
-        delete = self._gtk.Button("delete", None, "color3", self.bts)
+        delete = self._gtk.Button("delete", None, "red", self.bts)
         delete.connect("clicked", self.remove_confirm_dialog, ssid, bssid)
         delete.set_hexpand(False)
         delete.set_halign(Gtk.Align.END)
@@ -314,7 +314,7 @@ class Panel(ScreenPanel):
         self.labels['network_psk'].connect("touch-event", self._screen.show_keyboard)
         self.labels['network_psk'].connect("button-press-event", self._screen.show_keyboard)
 
-        save = self._gtk.Button("sd", _("Save"), "color3")
+        save = self._gtk.Button("sd", _("Save"), "green")
         save.set_hexpand(False)
         save.connect("clicked", self.add_new_network, ssid)
 

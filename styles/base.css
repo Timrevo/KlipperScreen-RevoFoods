@@ -666,3 +666,441 @@ flowbox button {
 keyboard_box {
     padding: 0 20em;
 }
+
+.custom_blue_button {
+    /* Professional industrial colors */
+    background: linear-gradient(135deg, #2C3E50 0%, #34495E 50%, #2C3E50 100%);
+    border-radius: 15px;
+    border: 2px solid #ffffff;
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 30px;
+    margin-right: 30px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.custom_orange_button {
+    /* Professional industrial colors */
+    background-color: #E67E22;
+    border-radius: 15px;
+    border: 2px solid #ffffff;
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 30px;
+    margin-right: 30px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.arrows {
+    /* Professional industrial colors */
+    background-color: #F9A259;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.blue_move {
+    /* Professional industrial colors */
+    background: linear-gradient(135deg, #2C3E50 0%, #34495E 50%, #2C3E50 100%);
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.setting_move {
+    /* Professional industrial colors */
+    background-color: #f18e3d;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.setting_blue1 {
+    /* Professional industrial colors */
+    background-color: #8DBAE9;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.setting_blue2 {
+    /* Professional industrial colors */
+    background-color: #6C93BC;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.setting_blue3 {
+    /* Professional industrial colors */
+    background-color: #4B6580;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.setting_blue4 {
+    /* Professional industrial colors */
+    background-color: #3D5369;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.red {
+    /* Professional industrial colors */
+    background-color: #9b3434;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.green {
+    /* Professional industrial colors */
+    background-color: #41922d;
+    border-radius: 8px;
+    /*border: 2px solid #ffffff;*/
+
+    /* Spacing and dimensions */
+    padding: 12px 20px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+    /* Industrial typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+    /* Visual effects */
+    box-shadow:
+        0 3px 8px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+
+.industrial_settings {
+    /* Modern and minimalist industrial design */
+    background: linear-gradient(145deg, #37474F 0%, #455A64 50%, #37474F 100%);
+    /* border: 1px solid #607D8B;
+    border-radius: 6px;
+    
+    Optimized spacing for touch screen
+    padding: 14px 18px;
+    margin: 8px 12px;
+    min-height: 48px; */
+    
+    /* Clear and readable typography */
+    color: #ECEFF1;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    
+    /* Subtle effects for depth */
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.industrial_primary {
+    /* Primary version for important elements */
+    background: linear-gradient(145deg, #546E7A 0%, #607D8B 50%, #546E7A 100%);
+    /* border: 1px solid #78909C;
+    border-radius: 6px;
+    
+    padding: 14px 18px;
+    margin: 8px 12px;
+    min-height: 48px; */
+    
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.industrial_secondary {
+    /* Secondary version for less critical actions */
+    background: linear-gradient(145deg, #424242 0%, #515151 50%, #424242 100%);
+    /* border: 1px solid #616161;
+    border-radius: 6px;
+    
+    padding: 14px 18px;
+    margin: 8px 12px;
+    min-height: 48px; */
+    
+    color: #E0E0E0;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+
+.main_menu_control {
+    /* Row 1: Move & Console - Consistent industrial blue */
+    background-color: #2C3E50;
+    
+    /* Clear and modern typography */
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.3px;
+    
+    /* Visual effects for depth */
+    box-shadow: 
+        0 3px 6px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.main_menu_secondary {
+    /* Row 2: Settings & Macros - Consistent industrial gray */
+    background-color: #2C3E50;
+    
+    color: #ECEFF1;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.3px;
+    
+    box-shadow: 
+        0 3px 6px rgba(0,0,0,0.16),
+        inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
+.main_menu_production {
+    /* Row 3: Produce - Industrial orange for production */
+    background-color: #E67E22;
+    
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.4px;
+    
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.background_color {
+    /* Row 3: Produce - Industrial orange for production */
+    background-color: #13181C;
+    
+    color: #FFFFFF;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.4px;
+    
+    box-shadow: 
+        0 4px 8px rgba(0,0,0,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+}

@@ -9,6 +9,27 @@ from ks_includes.KlippyGtk import find_widget
 
 
 class ScreenPanel:
+    def record_print_start_time(self):
+        import os, json
+        from datetime import datetime
+        print_times_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'print_times.json')
+        today = datetime.now().strftime("%Y-%m-%d")
+        now_time = datetime.now().strftime("%H:%M")
+        try:
+            if os.path.exists(print_times_file) and os.path.getsize(print_times_file) > 0:
+                with open(print_times_file, 'r', encoding='utf-8') as f:
+                    times_data = json.load(f)
+            else:
+                times_data = {}
+            if today not in times_data:
+                times_data[today] = {"first": now_time, "last": now_time}
+            else:
+                times_data[today]["last"] = now_time
+            with open(print_times_file, 'w', encoding='utf-8') as f:
+                json.dump(times_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            import logging
+            logging.error(f"Error while saving print times: {e}")
     _screen = None
     _config = None
     _files = None
@@ -264,13 +285,13 @@ class ScreenPanel:
             box.add(label)
             row_box.add(box)
         elif option['type'] == "menu":
-            open_menu = self._gtk.Button("settings", style="color3")
+            open_menu = self._gtk.Button("settings", style="industrial_settings")
             open_menu.connect("clicked", self.load_menu, option['menu'], option['name'])
             open_menu.set_hexpand(False)
             open_menu.set_halign(Gtk.Align.END)
             row_box.add(open_menu)
         elif option['type'] == "button":
-            select = self._gtk.Button("load", style="color3")
+            select = self._gtk.Button("load", style="industrial_settings")
             if "callback" in option:
                 select.connect("clicked", option['callback'], option['name'])
             select.set_hexpand(False)

@@ -45,7 +45,7 @@ class Panel(ScreenPanel):
         self.headerbox = Gtk.Box(hexpand=True, vexpand=False)
         n = 0
         for name, val in self.sort_items.items():
-            s = self._gtk.Button(None, val, f"color{n % 4 + 1}", .5, Gtk.PositionType.RIGHT, 1)
+            s = self._gtk.Button(None, val, "blue_move", .5, Gtk.PositionType.RIGHT, 1)
             s.get_style_context().add_class("buttons_slim")
             if name == self.sort_current[0]:
                 s.set_image(self._gtk.Image(self.sort_icon[self.sort_current[1]], self._gtk.img_scale * self.bts))
@@ -54,13 +54,13 @@ class Panel(ScreenPanel):
             self.headerbox.add(s)
             n += 1
 
-        self.refresh = self._gtk.Button("refresh", style=f"color{n % 4 + 1}", scale=self.bts)
+        self.refresh = self._gtk.Button("refresh", style="arrows", scale=self.bts)
         self.refresh.get_style_context().add_class("buttons_slim")
         self.refresh.connect('clicked', self._refresh_files)
         n += 1
         self.headerbox.add(self.refresh)
 
-        self.switch_mode = self._gtk.Button("fine-tune", style=f"color{n % 4 + 1}", scale=self.bts)
+        self.switch_mode = self._gtk.Button("fine-tune", style="arrows", scale=self.bts)
         self.switch_mode.get_style_context().add_class("buttons_slim")
         self.switch_mode.connect('clicked', self.switch_view_mode)
         n += 1
@@ -202,7 +202,14 @@ class Panel(ScreenPanel):
             icon = self._gtk.Button(label=basename)
             if 'filename' in item:
                 icon.connect("clicked", self.confirm_print, path)
-                image_args = (path, icon, self.thumbsize, False, "file")
+                if "salmon" in item['filename'] or "SALMON" in item['filename']:
+                    image_args = (path, icon, self.thumbsize, False, "salmon")
+                elif "blanco" in item['filename'] or "BLANCO" in item['filename']:
+                    image_args = (path, icon, self.thumbsize, False, "elblanco")
+                elif "prime" in item['filename'] or "cut" in item['filename'] or "PRIME" in item['filename'] or "CUT" in item['filename'] :
+                    image_args = (path, icon, self.thumbsize, False, "primecut")
+                else :
+                    image_args = (path, icon, self.thumbsize, False, "file")
             elif 'dirname' in item:
                 icon.connect("clicked", self.change_dir, path)
                 image_args = (None, icon, self.thumbsize, False, "folder")
@@ -316,12 +323,12 @@ class Panel(ScreenPanel):
         return b.get_date() - a.get_date() if reverse else a.get_date() - b.get_date()
 
     def confirm_print(self, widget, filename):
-        action = _("Print") if self._printer.extrudercount > 0 else _("Start")
+        action = _("Produce") if self._printer.extrudercount > 0 else _("Start")
 
         buttons = [
-            {"name": _("Delete"), "response": Gtk.ResponseType.REJECT, "style": 'dialog-error'},
-            {"name": action, "response": Gtk.ResponseType.OK, "style": 'dialog-primary'},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'dialog-secondary'}
+            {"name": _("Delete"), "response": Gtk.ResponseType.REJECT, "style": 'red'},
+            {"name": action, "response": Gtk.ResponseType.OK, "style": 'arrows'},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'blue_move'}
         ]
 
         label = Gtk.Label(

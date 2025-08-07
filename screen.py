@@ -917,8 +917,8 @@ class KlipperScreen(Gtk.Window):
 
     def confirm_save(self, widget):
         buttons = [
-            {"name": _("Save"), "response": Gtk.ResponseType.OK, "style": 'dialog-info'},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'dialog-error'}
+            {"name": _("Save"), "response": Gtk.ResponseType.OK, "style": 'green'},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'red'}
         ]
         label = Gtk.Label(label=_("Save configuration?") + "\n\n" + _("Klipper will reboot"),
                           hexpand=True, vexpand=True,

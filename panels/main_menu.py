@@ -28,7 +28,8 @@ class Panel(MenuPanel):
         if stats["temperature_devices"]["count"] > 0 or stats["extruders"]["count"] > 0:
             self._gtk.reset_temp_color()
         if self._screen.vertical_mode:
-            self.main_menu.attach(self.create_left_panel(), 0, 0, 1, 3)
+            #Comment to remove the table and the graph
+            #self.main_menu.attach(self.create_left_panel(), 0, 0, 1, 3)
             self.labels['menu'] = self.arrangeMenuItems(items, 3, True)
             scroll.add(self.labels['menu'])
             self.main_menu.attach(scroll, 0, 3, 1, 2)

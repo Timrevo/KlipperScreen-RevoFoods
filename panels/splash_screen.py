@@ -13,7 +13,7 @@ class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
         image = self._gtk.Image(
-            "klipper", self._gtk.content_width * 0.2, self._gtk.content_height * 0.5
+            "revo", self._gtk.content_width * 0.2, self._gtk.content_height * 0.5
         )
         self.labels["text"] = Gtk.Label(
             label=_("Initializing printer..."),
@@ -23,25 +23,25 @@ class Panel(ScreenPanel):
             valign=Gtk.Align.CENTER,
         )
 
-        self.labels["menu"] = self._gtk.Button("settings", _("Menu"), "color4")
+        self.labels["menu"] = self._gtk.Button("settings", _("Menu"), "blue_move")
         self.labels["menu"].connect("clicked", self._screen._go_to_submenu, "")
         self.labels["restart"] = self._gtk.Button(
-            "refresh", _("Klipper Restart"), "color1"
+            "refresh", _("Klipper Restart"), "setting_move"
         )
         self.labels["restart"].connect("clicked", self.restart_klipper)
         self.labels["firmware_restart"] = self._gtk.Button(
-            "refresh", _("Firmware Restart"), "color2"
+            "refresh", _("Firmware Restart"), "setting_move"
         )
         self.labels["firmware_restart"].connect("clicked", self.firmware_restart)
         self.labels["restart_system"] = self._gtk.Button(
-            "refresh", _("System Restart"), "color1"
+            "refresh", _("System Restart"), "setting_move"
         )
         self.labels["restart_system"].connect("clicked", self.reboot_poweroff, "reboot")
         self.labels["shutdown"] = self._gtk.Button(
-            "shutdown", _("System Shutdown"), "color2"
+            "shutdown", _("System Shutdown"), "setting_move"
         )
         self.labels["shutdown"].connect("clicked", self.reboot_poweroff, "shutdown")
-        self.labels["retry"] = self._gtk.Button("load", _("Retry"), "color3")
+        self.labels["retry"] = self._gtk.Button("load", _("Retry"), "blue_move")
         self.labels["retry"].connect("clicked", self.retry)
 
         self.labels["actions"] = Gtk.Box(hexpand=True, vexpand=False, homogeneous=True)

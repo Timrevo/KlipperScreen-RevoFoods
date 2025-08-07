@@ -28,14 +28,14 @@ class Panel(ScreenPanel):
         self.settings = {}
         self.menu.append("move_menu")
         self.buttons = {
-            "x+": self._gtk.Button("arrow-right", "X+", "color1"),
-            "x-": self._gtk.Button("arrow-left", "X-", "color1"),
-            "y+": self._gtk.Button("arrow-up", "Y+", "color2"),
-            "y-": self._gtk.Button("arrow-down", "Y-", "color2"),
-            "z+": self._gtk.Button("z-farther", "Z+", "color3"),
-            "z-": self._gtk.Button("z-closer", "Z-", "color3"),
-            "home": self._gtk.Button("home", _("Home"), "color4"),
-            "motors_off": self._gtk.Button("motor-off", _("Disable Motors"), "color4"),
+            "x+": self._gtk.Button("arrow-right", "X+", "setting_move"),
+            "x-": self._gtk.Button("arrow-left", "X-", "setting_move"),
+            "y+": self._gtk.Button("arrow-up", "Y+", "setting_move"),
+            "y-": self._gtk.Button("arrow-down", "Y-", "setting_move"),
+            "z+": self._gtk.Button("z-farther", "Z+", "blue_move"),
+            "z-": self._gtk.Button("z-closer", "Z-", "blue_move"),
+            "home": self._gtk.Button("home", _("Home"), "blue_move"),
+            "motors_off": self._gtk.Button("motor-off", _("Disable Motors"), "blue_move"),
         }
         self.buttons["x+"].connect("clicked", self.move, "X", "+")
         self.buttons["x-"].connect("clicked", self.move, "X", "-")
@@ -53,7 +53,7 @@ class Panel(ScreenPanel):
             script,
         )
         adjust = self._gtk.Button(
-            "settings", None, "color2", 1, Gtk.PositionType.LEFT, 1
+            "settings", None, "arrows", 1, Gtk.PositionType.LEFT, 1
         )
         adjust.connect("clicked", self.load_menu, "options", _("Settings"))
         adjust.set_hexpand(False)
@@ -69,9 +69,9 @@ class Panel(ScreenPanel):
                 grid.attach(self.buttons["x-"], 2, 1, 1, 1)
                 grid.attach(self.buttons["z+"], 0, 2, 1, 1)
                 grid.attach(self.buttons["z-"], 2, 2, 1, 1)
-            grid.attach(adjust, 1, 2, 1, 1)
+            grid.attach(adjust, 1, 1, 1, 1) 
             grid.attach(self.buttons["y+"], 1, 0, 1, 1)
-            grid.attach(self.buttons["y-"], 1, 1, 1, 1)
+            grid.attach(self.buttons["y-"], 1, 2, 1, 1)
 
         else:
             if self._screen.lang_ltr:

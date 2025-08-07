@@ -13,7 +13,7 @@ class Panel(ScreenPanel):
         title = title or _("Macros")
         super().__init__(screen, title)
         self.sort_reverse = False
-        self.sort_btn = self._gtk.Button("arrow-up", _("Name"), "color1", self.bts, Gtk.PositionType.RIGHT, 1)
+        self.sort_btn = self._gtk.Button("arrow-up", _("Name"), "arrows", self.bts, Gtk.PositionType.RIGHT, 1)
         self.sort_btn.connect("clicked", self.change_sort)
         self.sort_btn.set_hexpand(True)
         self.sort_btn.get_style_context().add_class("buttons_slim")
@@ -21,7 +21,7 @@ class Panel(ScreenPanel):
         self.macros = {}
         self.menu = ['macros_menu']
 
-        adjust = self._gtk.Button("settings", " " + _("Settings"), "color2", self.bts, Gtk.PositionType.LEFT, 1)
+        adjust = self._gtk.Button("settings", " " + _("Settings"), "blue_move", self.bts, Gtk.PositionType.LEFT, 1)
         adjust.get_style_context().add_class("buttons_slim")
         adjust.connect("clicked", self.load_menu, 'options', _("Settings"))
         adjust.set_hexpand(False)
@@ -63,7 +63,7 @@ class Panel(ScreenPanel):
                          wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
         name.set_markup(f"<big><b>{macro}</b></big>")
 
-        btn = self._gtk.Button("resume", style="color3")
+        btn = self._gtk.Button("resume", style="setting_blue1")
         btn.connect("clicked", self.run_gcode_macro, macro)
         btn.set_hexpand(False)
         btn.set_halign(Gtk.Align.END)
