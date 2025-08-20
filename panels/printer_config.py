@@ -15,154 +15,163 @@ class Panel(ScreenPanel):
         self.config_widgets = {}
         self.menu = ['config_menu']
         
-        # Configuration sections to display with their parameters
-        # Based on your actual printer.cfg structure
-        self.config_sections = {
-            'printer': {
-                'name': _('Printer Settings'),
-                'params': {
-                    'kinematics': {'type': 'text', 'name': _('Kinematics')},
-                    'max_velocity': {'type': 'number', 'name': _('Max Velocity'), 'min': 10, 'max': 1000, 'step': 10},
-                    'max_accel': {'type': 'number', 'name': _('Max Acceleration'), 'min': 10, 'max': 5000, 'step': 10},
-                    'max_z_velocity': {'type': 'number', 'name': _('Max Z Velocity'), 'min': 1, 'max': 100, 'step': 1},
-                    'max_z_accel': {'type': 'number', 'name': _('Max Z Acceleration'), 'min': 10, 'max': 500, 'step': 10}
-                }
-            },
-            'stepper_x': {
-                'name': _('X Stepper'),
-                'params': {
-                    'step_pin': {'type': 'text', 'name': _('Step Pin')},
-                    'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
-                    'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
-                    'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
-                    'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 100, 'step': 0.1},
-                    'endstop_pin': {'type': 'text', 'name': _('Endstop Pin')},
-                    'position_endstop': {'type': 'number', 'name': _('Position Endstop'), 'min': -500, 'max': 500, 'step': 1},
-                    'position_max': {'type': 'number', 'name': _('Position Max'), 'min': 1, 'max': 1000, 'step': 10},
-                    'homing_speed': {'type': 'number', 'name': _('Homing Speed'), 'min': 1, 'max': 100, 'step': 5}
-                }
-            },
-            'stepper_y': {
-                'name': _('Y Stepper'),
-                'params': {
-                    'step_pin': {'type': 'text', 'name': _('Step Pin')},
-                    'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
-                    'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
-                    'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
-                    'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 100, 'step': 0.1},
-                    'endstop_pin': {'type': 'text', 'name': _('Endstop Pin')},
-                    'position_endstop': {'type': 'number', 'name': _('Position Endstop'), 'min': -500, 'max': 500, 'step': 1},
-                    'position_max': {'type': 'number', 'name': _('Position Max'), 'min': 1, 'max': 1000, 'step': 10},
-                    'homing_speed': {'type': 'number', 'name': _('Homing Speed'), 'min': 1, 'max': 100, 'step': 5}
-                }
-            },
-            'stepper_z': {
-                'name': _('Z Stepper'),
-                'params': {
-                    'step_pin': {'type': 'text', 'name': _('Step Pin')},
-                    'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
-                    'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
-                    'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
-                    'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 100, 'step': 0.1},
-                    'endstop_pin': {'type': 'text', 'name': _('Endstop Pin')},
-                    'position_max': {'type': 'decimal', 'name': _('Position Max'), 'min': 1, 'max': 1000, 'step': 1}
-                }
-            },
-            'stepper_z1': {
-                'name': _('Z1 Stepper'),
-                'params': {
-                    'step_pin': {'type': 'text', 'name': _('Step Pin')},
-                    'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
-                    'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
-                    'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
-                    'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 100, 'step': 0.1},
-                    'endstop_pin': {'type': 'text', 'name': _('Endstop Pin')}
-                }
-            },
-            'extruder': {
-                'name': _('Extruder Orange'),
-                'params': {
-                    'step_pin': {'type': 'text', 'name': _('Step Pin')},
-                    'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
-                    'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
-                    'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
-                    'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 100, 'step': 0.1},
-                    'nozzle_diameter': {'type': 'decimal', 'name': _('Nozzle Diameter'), 'min': 0.1, 'max': 10.0, 'step': 0.1},
-                    'filament_diameter': {'type': 'decimal', 'name': _('Filament Diameter'), 'min': 1.0, 'max': 20.0, 'step': 0.1},
-                    'heater_pin': {'type': 'text', 'name': _('Heater Pin')},
-                    'sensor_type': {'type': 'text', 'name': _('Sensor Type')},
-                    'sensor_pin': {'type': 'text', 'name': _('Sensor Pin')},
-                    'max_temp': {'type': 'number', 'name': _('Max Temperature'), 'min': 50, 'max': 500, 'step': 5},
-                    'min_temp': {'type': 'number', 'name': _('Min Temperature'), 'min': -300, 'max': 100, 'step': 5},
-                    'min_extrude_temp': {'type': 'number', 'name': _('Min Extrude Temp'), 'min': -300, 'max': 300, 'step': 5},
-                    'max_extrude_only_distance': {'type': 'number', 'name': _('Max Extrude Distance'), 'min': 50, 'max': 50000, 'step': 100},
-                    'max_extrude_cross_section': {'type': 'number', 'name': _('Max Cross Section'), 'min': 50, 'max': 50000, 'step': 100}
-                }
-            },
-            'extruder1': {
-                'name': _('Extruder White'),
-                'params': {
-                    'step_pin': {'type': 'text', 'name': _('Step Pin')},
-                    'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
-                    'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
-                    'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
-                    'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 100, 'step': 0.1},
-                    'nozzle_diameter': {'type': 'decimal', 'name': _('Nozzle Diameter'), 'min': 0.1, 'max': 10.0, 'step': 0.1},
-                    'filament_diameter': {'type': 'decimal', 'name': _('Filament Diameter'), 'min': 1.0, 'max': 20.0, 'step': 0.1},
-                    'heater_pin': {'type': 'text', 'name': _('Heater Pin')},
-                    'sensor_type': {'type': 'text', 'name': _('Sensor Type')},
-                    'sensor_pin': {'type': 'text', 'name': _('Sensor Pin')},
-                    'max_temp': {'type': 'number', 'name': _('Max Temperature'), 'min': 50, 'max': 500, 'step': 5},
-                    'min_temp': {'type': 'number', 'name': _('Min Temperature'), 'min': -300, 'max': 100, 'step': 5},
-                    'min_extrude_temp': {'type': 'number', 'name': _('Min Extrude Temp'), 'min': -300, 'max': 300, 'step': 5},
-                    'max_extrude_only_distance': {'type': 'number', 'name': _('Max Extrude Distance'), 'min': 50, 'max': 50000, 'step': 100},
-                    'max_extrude_cross_section': {'type': 'number', 'name': _('Max Cross Section'), 'min': 50, 'max': 50000, 'step': 100}
-                }
-            },
-            'tmc5160 stepper_x': {
-                'name': _('TMC5160 X Driver'),
-                'params': {
-                    'cs_pin': {'type': 'text', 'name': _('CS Pin')},
-                    'spi_bus': {'type': 'text', 'name': _('SPI Bus')},
-                    'spi_speed': {'type': 'number', 'name': _('SPI Speed'), 'min': 1000000, 'max': 10000000, 'step': 100000},
-                    'run_current': {'type': 'decimal', 'name': _('Run Current'), 'min': 0.1, 'max': 3.0, 'step': 0.1},
-                    'interpolate': {'type': 'boolean', 'name': _('Interpolate')}
-                }
-            },
-            'tmc5160 stepper_y': {
-                'name': _('TMC5160 Y Driver'),
-                'params': {
-                    'cs_pin': {'type': 'text', 'name': _('CS Pin')},
-                    'spi_bus': {'type': 'text', 'name': _('SPI Bus')},
-                    'spi_speed': {'type': 'number', 'name': _('SPI Speed'), 'min': 1000000, 'max': 10000000, 'step': 100000},
-                    'run_current': {'type': 'decimal', 'name': _('Run Current'), 'min': 0.1, 'max': 3.0, 'step': 0.1},
-                    'interpolate': {'type': 'boolean', 'name': _('Interpolate')}
-                }
-            },
-            'tmc5160 stepper_z': {
-                'name': _('TMC5160 Z Driver'),
-                'params': {
-                    'cs_pin': {'type': 'text', 'name': _('CS Pin')},
-                    'spi_bus': {'type': 'text', 'name': _('SPI Bus')},
-                    'spi_speed': {'type': 'number', 'name': _('SPI Speed'), 'min': 1000000, 'max': 10000000, 'step': 100000},
-                    'run_current': {'type': 'decimal', 'name': _('Run Current'), 'min': 0.1, 'max': 3.0, 'step': 0.1},
-                    'interpolate': {'type': 'boolean', 'name': _('Interpolate')}
-                }
-            },
-            'tmc5160 stepper_z1': {
-                'name': _('TMC5160 Z1 Driver'),
-                'params': {
-                    'cs_pin': {'type': 'text', 'name': _('CS Pin')},
-                    'spi_bus': {'type': 'text', 'name': _('SPI Bus')},
-                    'spi_speed': {'type': 'number', 'name': _('SPI Speed'), 'min': 1000000, 'max': 10000000, 'step': 100000},
-                    'run_current': {'type': 'decimal', 'name': _('Run Current'), 'min': 0.1, 'max': 3.0, 'step': 0.1},
-                    'interpolate': {'type': 'boolean', 'name': _('Interpolate')}
-                }
-            }
+        # List of configuration sections to display (easily modifiable)
+        # Add or remove section names here to customize what appears in the UI
+        self.allowed_sections = [
+            'printer',
+            'stepper_x', 
+            'stepper_y',
+            'stepper_z',
+            'extruder',
+            'extruder1',
+            'gcode_macro T0',
+            'gcode_macro T1'
+        ]
+        
+        # Parameter type definitions with validation rules
+        # These will be applied automatically when parameters are found
+        self.parameter_types = {
+            # Printer section parameters
+            'kinematics': {'type': 'text', 'name': _('Kinematics')},
+            'max_velocity': {'type': 'number', 'name': _('Max Velocity'), 'min': 10, 'max': 1000, 'step': 10},
+            'max_accel': {'type': 'number', 'name': _('Max Acceleration'), 'min': 10, 'max': 10000, 'step': 10},
+            'max_z_velocity': {'type': 'number', 'name': _('Max Z Velocity'), 'min': 1, 'max': 100, 'step': 1},
+            'max_z_accel': {'type': 'number', 'name': _('Max Z Acceleration'), 'min': 10, 'max': 1000, 'step': 10},
+            
+            # Stepper parameters
+            'step_pin': {'type': 'text', 'name': _('Step Pin')},
+            'dir_pin': {'type': 'text', 'name': _('Direction Pin')},
+            'enable_pin': {'type': 'text', 'name': _('Enable Pin')},
+            'microsteps': {'type': 'number', 'name': _('Microsteps'), 'min': 1, 'max': 256, 'step': 1},
+            'rotation_distance': {'type': 'decimal', 'name': _('Rotation Distance'), 'min': 0.1, 'max': 1000, 'step': 0.1},
+            'endstop_pin': {'type': 'text', 'name': _('Endstop Pin')},
+            'position_endstop': {'type': 'decimal', 'name': _('Position Endstop'), 'min': -100000, 'max': 100000, 'step': 0.1},
+            'position_max': {'type': 'decimal', 'name': _('Position Max'), 'min': 1, 'max': 100000, 'step': 0.1},
+            'position_min': {'type': 'decimal', 'name': _('Position Min'), 'min': -100000, 'max': 100000, 'step': 0.1},
+            'homing_speed': {'type': 'number', 'name': _('Homing Speed'), 'min': 1, 'max': 200, 'step': 5},
+            'homing_retract_dist': {'type': 'number', 'name': _('Homing Retract Distance'), 'min': 1, 'max': 50, 'step': 1},
+            'homing_positive_dir': {'type': 'boolean', 'name': _('Homing Positive Direction')},
+            
+            # Extruder parameters
+            'nozzle_diameter': {'type': 'decimal', 'name': _('Nozzle Diameter'), 'min': 0.1, 'max': 20.0, 'step': 0.1},
+            'filament_diameter': {'type': 'decimal', 'name': _('Filament Diameter'), 'min': 0.1, 'max': 20.0, 'step': 0.1},
+            'heater_pin': {'type': 'text', 'name': _('Heater Pin')},
+            'sensor_type': {'type': 'text', 'name': _('Sensor Type')},
+            'sensor_pin': {'type': 'text', 'name': _('Sensor Pin')},
+            'control': {'type': 'text', 'name': _('Control')},
+            'pid_Kp': {'type': 'decimal', 'name': _('PID Kp'), 'min': 0.1, 'max': 1000, 'step': 0.1},
+            'pid_Ki': {'type': 'decimal', 'name': _('PID Ki'), 'min': 0.01, 'max': 100, 'step': 0.01},
+            'pid_Kd': {'type': 'decimal', 'name': _('PID Kd'), 'min': 1, 'max': 10000, 'step': 1},
+            'max_temp': {'type': 'number', 'name': _('Max Temperature'), 'min': 50, 'max': 50000, 'step': 5},
+            'min_temp': {'type': 'number', 'name': _('Min Temperature'), 'min': -300, 'max': 100, 'step': 5},
+            'min_extrude_temp': {'type': 'number', 'name': _('Min Extrude Temp'), 'min': -300, 'max': 300, 'step': 5},
+            'max_extrude_only_distance': {'type': 'number', 'name': _('Max Extrude Distance'), 'min': 50, 'max': 50000000, 'step': 100},
+            'max_extrude_cross_section': {'type': 'number', 'name': _('Max Cross Section'), 'min': 50, 'max': 50000000, 'step': 100},
+            
+            # TMC driver parameters
+            'cs_pin': {'type': 'text', 'name': _('CS Pin')},
+            'spi_bus': {'type': 'text', 'name': _('SPI Bus')},
+            'spi_speed': {'type': 'number', 'name': _('SPI Speed'), 'min': 100000, 'max': 10000000, 'step': 100000},
+            'run_current': {'type': 'decimal', 'name': _('Run Current'), 'min': 0.1, 'max': 5.0, 'step': 0.1},
+            'interpolate': {'type': 'boolean', 'name': _('Interpolate')},
+            
+            # Gcode macro parameters
+            'gcode': {'type': 'text', 'name': _('Gcode'), 'multiline': True},
+            'description': {'type': 'text', 'name': _('Description')},
+            
+            # Common parameters that might appear in various sections
+            'extruder': {'type': 'text', 'name': _('Extruder')},
+            'serial': {'type': 'text', 'name': _('Serial')},
+            'pin': {'type': 'text', 'name': _('Pin')},
+            'value': {'type': 'decimal', 'name': _('Value'), 'min': -1000000, 'max': 1000000, 'step': 0.1}
         }
+        
+        # Dynamic configuration sections - will be populated from actual config file
+        self.config_sections = {}
         
         self.create_main_menu()
         self.load_config_data()
+
+    def get_section_display_name(self, section_name: str) -> str:
+        """Generate a user-friendly display name for a section"""
+        # Convert section names to readable format
+        name_mapping = {
+            'printer': _('Printer Settings'),
+            'stepper_x': _('X Stepper'),
+            'stepper_y': _('Y Stepper'), 
+            'stepper_z': _('Z Stepper'),
+            'stepper_z1': _('Z1 Stepper'),
+            'extruder': _('Extruder'),
+            'extruder1': _('Extruder 1'),
+            'gcode_macro T0': _('Gcode Macro T0'),
+            'gcode_macro T1': _('Gcode Macro T1')
+        }
+        
+        # Check if we have a predefined name
+        if section_name in name_mapping:
+            return name_mapping[section_name]
+        
+        # Generate name from section name
+        if section_name.startswith('gcode_macro'):
+            macro_name = section_name.replace('gcode_macro ', '')
+            return f"{_('Gcode Macro')} {macro_name}"
+        elif section_name.startswith('tmc'):
+            parts = section_name.split(' ')
+            if len(parts) >= 2:
+                return f"{parts[0].upper()} {parts[1].replace('_', ' ').title()}"
+        
+        # Default: capitalize and replace underscores
+        return section_name.replace('_', ' ').title()
+
+    def get_parameter_config(self, param_name: str) -> Dict[str, Any]:
+        """Get parameter configuration with automatic type detection"""
+        # Check if we have a predefined config for this parameter
+        if param_name in self.parameter_types:
+            return self.parameter_types[param_name].copy()
+        
+        # Auto-detect parameter type based on name patterns
+        param_lower = param_name.lower()
+        
+        # Boolean parameters
+        if any(keyword in param_lower for keyword in ['enable', 'interpolate', 'invert', 'positive_dir']):
+            return {'type': 'boolean', 'name': _(param_name.replace('_', ' ').title())}
+        
+        # Pin parameters
+        if 'pin' in param_lower:
+            return {'type': 'text', 'name': _(param_name.replace('_', ' ').title())}
+        
+        # Temperature parameters
+        if 'temp' in param_lower:
+            return {'type': 'number', 'name': _(param_name.replace('_', ' ').title()), 
+                   'min': -300, 'max': 50000, 'step': 5}
+        
+        # Speed/velocity parameters
+        if any(keyword in param_lower for keyword in ['speed', 'velocity', 'accel']):
+            return {'type': 'number', 'name': _(param_name.replace('_', ' ').title()), 
+                   'min': 1, 'max': 10000, 'step': 1}
+        
+        # Distance/position parameters
+        if any(keyword in param_lower for keyword in ['distance', 'position', 'diameter']):
+            return {'type': 'decimal', 'name': _(param_name.replace('_', ' ').title()), 
+                   'min': -100000, 'max': 100000, 'step': 0.1}
+        
+        # Current parameters
+        if 'current' in param_lower:
+            return {'type': 'decimal', 'name': _(param_name.replace('_', ' ').title()), 
+                   'min': 0.1, 'max': 5.0, 'step': 0.1}
+        
+        # PID parameters
+        if param_lower.startswith('pid_'):
+            return {'type': 'decimal', 'name': _(param_name.replace('_', ' ').title()), 
+                   'min': 0.01, 'max': 10000, 'step': 0.01}
+        
+        # Microsteps
+        if 'microsteps' in param_lower:
+            return {'type': 'number', 'name': _(param_name.replace('_', ' ').title()), 
+                   'min': 1, 'max': 256, 'step': 1}
+        
+        # Default to text for unknown parameters
+        return {'type': 'text', 'name': _(param_name.replace('_', ' ').title())}
 
     def create_main_menu(self):
         """Create the main configuration menu with section buttons"""
@@ -173,25 +182,30 @@ class Panel(ScreenPanel):
         # Add save and reload buttons FIRST (at the top)
         self.add_action_buttons()
         
-        # Add sections as menu items AFTER (below the action buttons)
-        for section_key, section_data in self.config_sections.items():
-            self.add_section_option(section_key, section_data)
-        
+        # Content will be added after config is loaded
         self.content.add(self.labels['config_menu'])
 
-    def add_section_option(self, section_key: str, section_data: Dict[str, Any]):
+    def populate_main_menu(self):
+        """Populate the main menu with available sections"""
+        # Add sections as menu items AFTER the action buttons
+        for section_key in self.config_sections.keys():
+            self.add_section_option(section_key)
+
+    def add_section_option(self, section_key: str):
         """Add a section option to the main menu"""
+        section_name = self.get_section_display_name(section_key)
+        
         name = Gtk.Label(
             hexpand=True, vexpand=True, halign=Gtk.Align.START, valign=Gtk.Align.CENTER,
             wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, xalign=0)
-        name.set_markup(f"<big><b>{section_data['name']}</b></big>")
+        name.set_markup(f"<big><b>{section_name}</b></big>")
 
         row_box = Gtk.Box(spacing=5, valign=Gtk.Align.CENTER, hexpand=True, vexpand=False)
         row_box.get_style_context().add_class("frame-item")
         row_box.add(name)
 
         open_section = self._gtk.Button("settings", style="main_menu_control")
-        open_section.connect("clicked", self.load_section_menu, section_key, section_data['name'])
+        open_section.connect("clicked", self.load_section_menu, section_key, section_name)
         open_section.set_hexpand(False)
         open_section.set_halign(Gtk.Align.END)
         row_box.add(open_section)
@@ -235,16 +249,13 @@ class Panel(ScreenPanel):
         reload_button.set_halign(Gtk.Align.END)
         reload_row.add(reload_button)
 
-        # Get current number of rows to position correctly (now will be 0 and 1 since we add these first)
-        current_rows = len([child for child in self.labels['config'].get_children()])
+        # Add save button at row 0
+        self.labels['config'].insert_row(0)
+        self.labels['config'].attach(save_row, 0, 0, 1, 1)
         
-        # Add save button
-        self.labels['config'].insert_row(current_rows)
-        self.labels['config'].attach(save_row, 0, current_rows, 1, 1)
-        
-        # Add reload button
-        self.labels['config'].insert_row(current_rows + 1)
-        self.labels['config'].attach(reload_row, 0, current_rows + 1, 1, 1)
+        # Add reload button at row 1
+        self.labels['config'].insert_row(1)
+        self.labels['config'].attach(reload_row, 0, 1, 1, 1)
 
     def load_section_menu(self, widget, section_key: str, section_name: str):
         """Load a specific configuration section menu"""
@@ -304,26 +315,62 @@ class Panel(ScreenPanel):
             logging.info(f"No value found for [{section_key}] {param_key}, using default")
         
         if param_type == 'text':
-            # Create text entry with virtual keyboard support
-            entry_box = Gtk.Box(spacing=5, orientation=Gtk.Orientation.HORIZONTAL)
-            entry_box.set_halign(Gtk.Align.END)
-            entry_box.set_hexpand(False)
+            # Check if this is a multiline text field (like gcode)
+            is_multiline = param_config.get('multiline', False)
             
-            # Use standard Gtk.Entry with actual current value
-            entry = Gtk.Entry()
-            entry.set_text(str(actual_value) if actual_value else "")
-            entry.set_size_request(200, -1)
-            entry.connect("changed", self.on_text_changed, section_key, param_key)
-            
-            # Add button to manually show keyboard
-            keyboard_btn = self._gtk.Button("keyboard", style="main_menu_production")
-            keyboard_btn.set_size_request(40, -1)
-            keyboard_btn.connect("clicked", self.on_keyboard_button_clicked, entry)
-            
-            entry_box.add(entry)
-            entry_box.add(keyboard_btn)
-            row_box.add(entry_box)
-            self.config_widgets[section_key][param_key] = entry
+            if is_multiline:
+                # Create a text view with scroll for multiline content
+                text_box = Gtk.Box(spacing=5, orientation=Gtk.Orientation.VERTICAL)
+                text_box.set_halign(Gtk.Align.END)
+                text_box.set_hexpand(False)
+                
+                # Create scrolled window for text view
+                scrolled = Gtk.ScrolledWindow()
+                scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+                scrolled.set_size_request(300, 150)
+                
+                # Create text view
+                text_view = Gtk.TextView()
+                text_view.set_wrap_mode(Gtk.WrapMode.WORD)
+                text_view.get_buffer().set_text(str(actual_value) if actual_value else "")
+                text_view.get_buffer().connect("changed", self.on_text_view_changed, section_key, param_key)
+                
+                scrolled.add(text_view)
+                
+                # Add button for virtual keyboard
+                keyboard_btn = self._gtk.Button("keyboard", style="main_menu_production")
+                keyboard_btn.set_size_request(40, -1)
+                keyboard_btn.connect("clicked", self.on_keyboard_button_clicked_textview, text_view)
+                
+                button_box = Gtk.Box(spacing=5, orientation=Gtk.Orientation.HORIZONTAL)
+                button_box.set_halign(Gtk.Align.END)
+                button_box.add(keyboard_btn)
+                
+                text_box.add(scrolled)
+                text_box.add(button_box)
+                row_box.add(text_box)
+                self.config_widgets[section_key][param_key] = text_view
+            else:
+                # Create single-line text entry with virtual keyboard support
+                entry_box = Gtk.Box(spacing=5, orientation=Gtk.Orientation.HORIZONTAL)
+                entry_box.set_halign(Gtk.Align.END)
+                entry_box.set_hexpand(False)
+                
+                # Use standard Gtk.Entry with actual current value
+                entry = Gtk.Entry()
+                entry.set_text(str(actual_value) if actual_value else "")
+                entry.set_size_request(200, -1)
+                entry.connect("changed", self.on_text_changed, section_key, param_key)
+                
+                # Add button to manually show keyboard
+                keyboard_btn = self._gtk.Button("keyboard", style="main_menu_production")
+                keyboard_btn.set_size_request(40, -1)
+                keyboard_btn.connect("clicked", self.on_keyboard_button_clicked, entry)
+                
+                entry_box.add(entry)
+                entry_box.add(keyboard_btn)
+                row_box.add(entry_box)
+                self.config_widgets[section_key][param_key] = entry
             
         elif param_type in ['number', 'decimal']:
             # Create -/entry/+ layout for number input
@@ -400,24 +447,6 @@ class Panel(ScreenPanel):
             # Set initial button colors based on actual current value
             bool_value = str(actual_value).lower() if actual_value else "false"
             self.update_boolean_buttons(section_key, param_key, bool_value)
-            
-        elif param_type == 'dropdown':
-            # Create dropdown with actual current value selected
-            combo_box = Gtk.Box(spacing=5, orientation=Gtk.Orientation.HORIZONTAL)
-            combo_box.set_halign(Gtk.Align.END)
-            combo_box.set_hexpand(False)
-            
-            combo = Gtk.ComboBoxText()
-            combo.set_size_request(200, -1)
-            for option in param_config['options']:
-                combo.append_text(option)
-                if option == str(actual_value):
-                    combo.set_active_id(option)
-            combo.connect("changed", self.on_dropdown_changed, section_key, param_key)
-            
-            combo_box.add(combo)
-            row_box.add(combo_box)
-            self.config_widgets[section_key][param_key] = combo
 
         return row_box
 
@@ -426,6 +455,70 @@ class Panel(ScreenPanel):
         if section_key not in self.config_data:
             self.config_data[section_key] = {}
         self.config_data[section_key][param_key] = entry.get_text()
+
+    def on_text_view_changed(self, text_buffer, section_key: str, param_key: str):
+        """Handle text view changes for multiline content"""
+        if section_key not in self.config_data:
+            self.config_data[section_key] = {}
+        start_iter = text_buffer.get_start_iter()
+        end_iter = text_buffer.get_end_iter()
+        text_content = text_buffer.get_text(start_iter, end_iter, False)
+        self.config_data[section_key][param_key] = text_content
+
+    def on_keyboard_button_clicked_textview(self, button, text_view):
+        """Handle keyboard button click for text view to show virtual keyboard"""
+        try:
+            # Get the text buffer
+            text_buffer = text_view.get_buffer()
+            start_iter = text_buffer.get_start_iter()
+            end_iter = text_buffer.get_end_iter()
+            current_text = text_buffer.get_text(start_iter, end_iter, False)
+            
+            # Show text input dialog
+            self.show_text_input_dialog_for_textview(text_view, current_text)
+        except Exception as e:
+            logging.error(f"Keyboard button error for text view: {e}")
+
+    def show_text_input_dialog_for_textview(self, text_view, current_text):
+        """Show a text input dialog for text view with multiline support"""
+        try:
+            dialog = Gtk.Dialog(
+                title=_("Edit Text"),
+                parent=self._screen,
+                flags=0
+            )
+            dialog.set_default_size(500, 400)
+            
+            # Create text view for the dialog
+            scrolled = Gtk.ScrolledWindow()
+            scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+            
+            dialog_text_view = Gtk.TextView()
+            dialog_text_view.set_wrap_mode(Gtk.WrapMode.WORD)
+            dialog_text_view.get_buffer().set_text(current_text)
+            
+            scrolled.add(dialog_text_view)
+            dialog.get_content_area().add(scrolled)
+            
+            # Add buttons
+            dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+            ok_button = dialog.add_button(_("OK"), Gtk.ResponseType.OK)
+            ok_button.get_style_context().add_class("color1")
+            
+            dialog.show_all()
+            response = dialog.run()
+            
+            if response == Gtk.ResponseType.OK:
+                # Get the text from dialog and set it to the original text view
+                dialog_buffer = dialog_text_view.get_buffer()
+                start_iter = dialog_buffer.get_start_iter()
+                end_iter = dialog_buffer.get_end_iter()
+                new_text = dialog_buffer.get_text(start_iter, end_iter, False)
+                text_view.get_buffer().set_text(new_text)
+            
+            dialog.destroy()
+        except Exception as e:
+            logging.error(f"Text input dialog error: {e}")
 
     def on_number_entry_changed(self, entry, section_key: str, param_key: str, param_config: Dict[str, Any]):
         """Handle direct numeric entry changes"""
@@ -507,55 +600,24 @@ class Panel(ScreenPanel):
                 flags=0,
                 message_type=Gtk.MessageType.QUESTION,
                 buttons=Gtk.ButtonsType.OK_CANCEL,
-                text=_("Enter Value")
+                text=_("Enter value:")
             )
             
+            # Add an entry to the dialog
             content_area = dialog.get_content_area()
-            input_entry = Gtk.Entry()
-            input_entry.set_text(entry.get_text())
-            input_entry.set_size_request(300, -1)
-            content_area.add(input_entry)
-            
+            dialog_entry = Gtk.Entry()
+            dialog_entry.set_text(entry.get_text())
+            content_area.add(dialog_entry)
             dialog.show_all()
+            
             response = dialog.run()
             
             if response == Gtk.ResponseType.OK:
-                entry.set_text(input_entry.get_text())
-                # Trigger the changed signal manually
-                entry.emit("changed")
-                
-            dialog.destroy()
+                entry.set_text(dialog_entry.get_text())
             
+            dialog.destroy()
         except Exception as e:
-            logging.error(f"Failed to show text input dialog: {e}")
-
-    def on_entry_focus_in(self, entry, event):
-        """Handle entry focus in - show virtual keyboard"""
-        try:
-            # Show virtual keyboard for text input using KlipperScreen's method
-            if hasattr(self._screen, '_show_keyboard'):
-                self._screen._show_keyboard(entry)
-            elif hasattr(self._screen, 'show_keyboard'):
-                self._screen.show_keyboard(entry)
-            elif hasattr(self._screen, 'base_panel') and hasattr(self._screen.base_panel, 'show_keyboard'):
-                self._screen.base_panel.show_keyboard(entry)
-        except Exception as e:
-            logging.debug(f"Could not show virtual keyboard: {e}")
-        return False
-
-    def on_entry_focus_out(self, entry, event):
-        """Handle entry focus out - hide virtual keyboard"""
-        try:
-            # Hide virtual keyboard using KlipperScreen's method
-            if hasattr(self._screen, '_hide_keyboard'):
-                self._screen._hide_keyboard()
-            elif hasattr(self._screen, 'hide_keyboard'):
-                self._screen.hide_keyboard()
-            elif hasattr(self._screen, 'base_panel') and hasattr(self._screen.base_panel, 'hide_keyboard'):
-                self._screen.base_panel.hide_keyboard()
-        except Exception as e:
-            logging.debug(f"Could not hide virtual keyboard: {e}")
-        return False
+            logging.error(f"Text input dialog error: {e}")
 
     def on_number_changed(self, widget, section_key: str, param_key: str, delta):
         """Handle number increment/decrement using +/- buttons"""
@@ -622,13 +684,6 @@ class Panel(ScreenPanel):
                 false_btn.get_style_context().add_class("main_menu_production")  # Selected (orange)
                 widget_data['current_value'] = 'false'
 
-
-    def on_dropdown_changed(self, combo, section_key: str, param_key: str):
-        """Handle dropdown changes"""
-        if section_key not in self.config_data:
-            self.config_data[section_key] = {}
-        self.config_data[section_key][param_key] = combo.get_active_text()
-
     def load_config_data(self):
         """Load current printer configuration from Klipper"""
         try:
@@ -669,93 +724,88 @@ class Panel(ScreenPanel):
             GLib.idle_add(self._screen.show_popup_message, _("Failed to load configuration"))
 
     def _parse_config_file(self, config_text: str):
-        """Parse the printer.cfg file to extract current values"""
-        import re
-        
+        """Parse the printer.cfg file to extract current values and build sections dynamically"""
         self.config_data = {}
+        self.config_sections = {}
         lines = config_text.split('\n')
         current_section = None
+        collecting_gcode = False
+        gcode_lines = []
         
         logging.info("Parsing printer.cfg file...")
         
         for line in lines:
             line_stripped = line.strip()
             
-            # Skip empty lines and comments
+            # Skip empty lines and standalone comments
             if not line_stripped or line_stripped.startswith('#'):
+                if collecting_gcode:
+                    # Include empty lines in gcode blocks
+                    gcode_lines.append(line)
                 continue
             
             # Check if this is a section header like [printer] or [stepper_x]
             section_match = re.match(r'^\[([^\]]+)\]', line_stripped)
             if section_match:
+                # If we were collecting gcode, save it first
+                if collecting_gcode and current_section:
+                    if current_section in self.config_data:
+                        self.config_data[current_section]['gcode'] = '\n'.join(gcode_lines).strip()
+                    collecting_gcode = False
+                    gcode_lines = []
+                
                 current_section = section_match.group(1)
-                # Only initialize sections we care about
-                if current_section in self.config_sections:
+                
+                # Check if this section is in our allowed list
+                if current_section in self.allowed_sections:
                     self.config_data[current_section] = {}
-                    logging.info(f"Found section: {current_section}")
+                    self.config_sections[current_section] = {
+                        'name': self.get_section_display_name(current_section),
+                        'params': {}
+                    }
+                    logging.info(f"Found allowed section: {current_section}")
                 continue
+            
+            # Handle gcode macro content (special case for multi-line gcode)
+            if (current_section and current_section.startswith('gcode_macro') and 
+                current_section in self.allowed_sections):
+                if line_stripped.lower() == 'gcode:':
+                    collecting_gcode = True
+                    gcode_lines = []
+                    continue
+                elif collecting_gcode:
+                    # Add line to gcode content, preserving original formatting
+                    gcode_lines.append(line)
+                    continue
             
             # Check if this is a parameter line like "max_velocity: 100" or "kinematics = cartesian"
             param_match = re.match(r'^([^#:=]+)[:=]\s*(.*)$', line_stripped)
-            if param_match and current_section and current_section in self.config_sections:
+            if param_match and current_section and current_section in self.allowed_sections:
                 param_name = param_match.group(1).strip()
                 param_value = param_match.group(2).strip()
                 
-                # Only store parameters that are defined in our UI
-                if param_name in self.config_sections[current_section]['params']:
-                    self.config_data[current_section][param_name] = param_value
-                    logging.info(f"Loaded [{current_section}] {param_name} = {param_value}")
-        
-        # Initialize empty sections for missing ones
-        for section_name in self.config_sections.keys():
-            if section_name not in self.config_data:
-                self.config_data[section_name] = {}
-                logging.info(f"Initialized empty section: {section_name}")
+                # Remove inline comments from value
+                if '#' in param_value:
+                    param_value = param_value.split('#')[0].strip()
                 
+                # Store the parameter value
+                self.config_data[current_section][param_name] = param_value
+                
+                # Add parameter to section config with auto-detected type
+                param_config = self.get_parameter_config(param_name)
+                self.config_sections[current_section]['params'][param_name] = param_config
+                
+                logging.info(f"Added parameter [{current_section}] {param_name} = '{param_value}'")
+        
+        # Handle any remaining gcode content at end of file
+        if collecting_gcode and current_section and current_section in self.config_data:
+            self.config_data[current_section]['gcode'] = '\n'.join(gcode_lines).strip()
+        
         logging.info(f"Configuration parsing completed. Found sections: {list(self.config_data.keys())}")
         
-        # Update the widgets on the main thread
+        # Update the UI on the main thread
+        GLib.idle_add(self.populate_main_menu)
         GLib.idle_add(self.update_widgets)
-
-    def _on_config_received(self, result):
-        """Process received configuration data (fallback method)"""
-        logging.warning("Using fallback API method - this might not work properly")
-        if "error" in result:
-            logging.error(f"Config error: {result['error']}")
-            return
-            
-        try:
-            # The result should contain the configuration sections
-            query_result = result.get("result", {})
-            status = query_result.get("status", {})
-            configfile = status.get("configfile", {})
-            config_data = configfile.get("config", {})
-            
-            self.config_data = {}
-            
-            # Parse the configuration data for known sections
-            for section_name in self.config_sections.keys():
-                if section_name in config_data:
-                    self.config_data[section_name] = dict(config_data[section_name])
-                    # Remove any parameters not in our UI definition
-                    section_params = self.config_sections[section_name]['params']
-                    filtered_data = {}
-                    for param_key in section_params.keys():
-                        if param_key in self.config_data[section_name]:
-                            filtered_data[param_key] = self.config_data[section_name][param_key]
-                    self.config_data[section_name] = filtered_data
-                else:
-                    # Initialize empty section if it doesn't exist
-                    self.config_data[section_name] = {}
-                    
-            logging.info(f"Configuration data loaded successfully: {list(self.config_data.keys())}")
-            logging.debug(f"Config data: {self.config_data}")
-            GLib.idle_add(self.update_widgets)
-            
-        except Exception as e:
-            logging.error(f"Failed to parse config data: {e}")
-            import traceback
-            logging.error(traceback.format_exc())
 
     def update_widgets(self):
         """Update widgets with loaded configuration data"""
@@ -776,10 +826,10 @@ class Panel(ScreenPanel):
                             # Text widget - update with current value
                             widget.set_text(str(value) if value else "")
                             logging.info(f"✅ Set text field to: '{value}'")
-                        elif isinstance(widget, Gtk.ComboBoxText):
-                            # Dropdown widget - select current value
-                            widget.set_active_id(str(value) if value else "")
-                            logging.info(f"✅ Set dropdown to: '{value}'")
+                        elif isinstance(widget, Gtk.TextView):
+                            # Text view widget for multiline content - update with current value
+                            widget.get_buffer().set_text(str(value) if value else "")
+                            logging.info(f"✅ Set text view to: '{value}'")
                         elif isinstance(widget, dict):
                             if 'entry' in widget:
                                 # Number/decimal widget - update entry with current value
@@ -810,9 +860,8 @@ class Panel(ScreenPanel):
             # Use REST API to download the current file first
             import threading
             threading.Thread(target=self._save_config_async).start()
-            
         except Exception as e:
-            logging.error(f"Failed to save config: {e}")
+            logging.error(f"Save error: {e}")
             self._screen.show_popup_message(_("Failed to save configuration"))
 
     def _save_config_async(self):
@@ -820,53 +869,81 @@ class Panel(ScreenPanel):
         try:
             import requests
             
-            # First, download the current printer.cfg file
+            # First download the current config file
             download_url = f"{self._screen.apiclient.endpoint}/server/files/config/printer.cfg"
-            
             logging.info(f"Downloading current config from {download_url}")
             
-            # Download current file
             response = requests.get(download_url, timeout=30)
             
             if response.status_code == 200:
                 current_config = response.text
                 logging.info("Current config downloaded successfully")
                 
-                # Modify the configuration with new values
+                # Modify the configuration with our changes
                 modified_config = self.modify_existing_config(current_config)
                 
-                # Upload the modified file
+                # Upload the modified configuration
                 self.upload_modified_config(modified_config)
             else:
                 error_msg = f"Failed to download current config: HTTP {response.status_code}"
                 logging.error(error_msg)
-                GLib.idle_add(self._on_config_saved_error, error_msg)
+                GLib.idle_add(self._screen.show_popup_message, _("Failed to save configuration"))
                 
         except Exception as e:
-            logging.error(f"Save exception: {e}")
+            logging.error(f"Save config exception: {e}")
             import traceback
             logging.error(traceback.format_exc())
-            GLib.idle_add(self._on_config_saved_error, str(e))
+            GLib.idle_add(self._screen.show_popup_message, _("Failed to save configuration"))
 
     def modify_existing_config(self, config_text: str) -> str:
         """Modify the existing configuration with new values"""
-        import re
-        
         lines = config_text.split('\n')
         modified_lines = []
         current_section = None
+        in_gcode_block = False
+        skip_until_next_section = False
         
         for line in lines:
             # Check if this is a section header
             section_match = re.match(r'^\[([^\]]+)\]', line.strip())
             if section_match:
                 current_section = section_match.group(1)
+                in_gcode_block = False
+                skip_until_next_section = False
                 modified_lines.append(line)
+                continue
+            
+            # Handle gcode macro sections specially
+            if current_section and current_section.startswith('gcode_macro'):
+                if line.strip().lower() == 'gcode:':
+                    # Start of gcode block
+                    in_gcode_block = True
+                    skip_until_next_section = True
+                    modified_lines.append(line)
+                    
+                    # Add our new gcode content if we have it
+                    if (current_section in self.config_data and 
+                        'gcode' in self.config_data[current_section]):
+                        new_gcode = self.config_data[current_section]['gcode']
+                        if new_gcode:
+                            # Add each line with proper indentation
+                            for gcode_line in new_gcode.split('\n'):
+                                if gcode_line.strip():
+                                    modified_lines.append(f"  {gcode_line}")
+                                else:
+                                    modified_lines.append("")
+                    continue
+                elif in_gcode_block and skip_until_next_section:
+                    # Skip original gcode content, we already added our new content
+                    continue
+            
+            # Skip if we're in a gcode block that we're replacing
+            if skip_until_next_section and not section_match:
                 continue
             
             # Check if this is a parameter line
             param_match = re.match(r'^([^#:=]+)[:=]\s*(.*)$', line.strip())
-            if param_match and current_section:
+            if param_match and current_section and not in_gcode_block:
                 param_name = param_match.group(1).strip()
                 original_value = param_match.group(2).strip()
                 
@@ -909,28 +986,25 @@ class Panel(ScreenPanel):
                 'file': ('printer.cfg', file_content, 'text/plain')
             }
             data = {
-                'root': 'config'
+                'root': 'config',
+                'path': ''
             }
             
-            logging.info(f"Uploading modified config to {url}")
-            logging.debug(f"Modified config preview: {config_content[:500]}...")
-            
-            # Make the request
+            logging.info("Uploading modified configuration...")
             response = requests.post(url, files=files, data=data, timeout=30)
             
-            logging.info(f"Upload response: {response.status_code} - {response.text}")
-            
-            if response.status_code in [200, 201]:
+            if response.status_code == 201:
+                logging.info("Configuration uploaded successfully")
                 GLib.idle_add(self._on_config_saved_success)
             else:
-                error_msg = f"HTTP {response.status_code}: {response.text}"
+                error_msg = f"Upload failed: HTTP {response.status_code} - {response.text}"
+                logging.error(error_msg)
                 GLib.idle_add(self._on_config_saved_error, error_msg)
                 
         except Exception as e:
-            logging.error(f"Upload exception: {e}")
-            import traceback
-            logging.error(traceback.format_exc())
-            GLib.idle_add(self._on_config_saved_error, str(e))
+            error_msg = f"Upload exception: {e}"
+            logging.error(error_msg)
+            GLib.idle_add(self._on_config_saved_error, error_msg)
 
     def _on_config_saved_success(self):
         """Handle successful config save"""
@@ -938,8 +1012,12 @@ class Panel(ScreenPanel):
         
         # Show success message with restart option
         def restart_klipper(widget):
-            self._screen._ws.klippy.restart_firmware()
-            self._screen.show_popup_message(_("Klipper is restarting..."))
+            try:
+                # Send restart command to Klipper
+                self._screen._ws.klippy.restart()
+                logging.info("Klipper restart initiated")
+            except Exception as e:
+                logging.error(f"Failed to restart Klipper: {e}")
         
         # Create a dialog with restart button
         dialog = Gtk.MessageDialog(
