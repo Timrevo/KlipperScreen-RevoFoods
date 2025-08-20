@@ -210,6 +210,16 @@ class Panel(ScreenPanel):
             'save_offset_probe': self._gtk.Button("home-z", _("Save Z") + "\n" + "Probe", "setting_move"),
             'save_offset_endstop': self._gtk.Button("home-z", _("Save Z") + "\n" + "Endstop", "setting_move"),
         }
+        
+        # Create quality selection buttons (1-8) for completed state
+        self.quality_buttons = {}
+        for i in range(1, 9):
+            self.quality_buttons[f'quality_{i}'] = self._gtk.Button("complete", str(i), "green")
+            self.quality_buttons[f'quality_{i}'].connect("clicked", self.quality_selected, i)
+        
+        # Create last print checkbox
+        self.last_print_checkbox = Gtk.CheckButton(label=_("Last print"))
+        self.last_print_checkbox.set_halign(Gtk.Align.CENTER)
         self.buttons['cancel'].connect("clicked", self.cancel)
         self.buttons['control'].connect("clicked", self._screen._go_to_submenu, "")
         self.buttons['fine_tune'].connect("clicked", self.menu_item_clicked, {
@@ -220,6 +230,103 @@ class Panel(ScreenPanel):
         self.buttons['resume'].connect("clicked", self.resume)
         self.buttons['save_offset_probe'].connect("clicked", self.save_offset, "probe")
         self.buttons['save_offset_endstop'].connect("clicked", self.save_offset, "endstop")
+
+    def quality_selected(self, widget, quality_count):
+        """Handle quality selection (1-8 good prints)"""
+        is_last_print = self.last_print_checkbox.get_active()
+        good_prints = quality_count
+        bad_prints = 8 - quality_count
+        
+        # Save to history
+        self.save_quality_history(good_prints, bad_prints)
+        
+        if is_last_print:
+            # Go back to main menu
+            logging.info(f"Last print selected, returning to main menu")
+            self.can_close = True  # Enable closing
+            self.close_panel()
+        else:
+            # Restart the print
+            if self.filename:
+                logging.info(f"Restarting print after quality selection: {self.filename}")
+                if self.state == "error":
+                    self._screen._ws.klippy.gcode_script("SDCARD_RESET_FILE")
+                self._screen._ws.klippy.print_start(self.filename)
+                self.record_print_start_time()
+                self.new_print()
+            else:
+                logging.info(f"Could not restart {self.filename}")
+
+    def save_quality_history(self, good_prints, bad_prints):
+        """Save quality history with good and bad print counts"""
+        if not self.filename:
+            return
+            
+        history_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'history.json')
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        try:
+            # Read existing history
+            if os.path.exists(history_file) and os.path.getsize(history_file) > 0:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    history_data = json.load(f)
+            else:
+                history_data = {}
+            
+            # Check if it's the first entry for today (new date)
+            is_new_day = today not in history_data
+            
+            # Initialize date entry if it doesn't exist
+            if is_new_day:
+                history_data[today] = {}
+                # Clean old entries (more than 30 days) when adding a new date
+                self.clean_old_history_entries(history_data, today)
+            
+            # Initialize filename entry if it doesn't exist
+            if self.filename not in history_data[today]:
+                history_data[today][self.filename] = {"good": 0, "bad": 0}
+            
+            # Add the new counts
+            history_data[today][self.filename]["good"] += good_prints
+            history_data[today][self.filename]["bad"] += bad_prints
+            
+            # Save the updated history
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump(history_data, f, indent=2, ensure_ascii=False)
+                
+            logging.info(f"Quality history saved: {self.filename} - {today} - Good: {good_prints}, Bad: {bad_prints}")
+            
+        except Exception as e:
+            logging.error(f"Error while saving quality history: {e}")
+
+    def clean_old_history_entries(self, history_data, current_date):
+        """Clean history entries older than 30 days"""
+        try:
+            from datetime import datetime, timedelta
+            
+            current_date_obj = datetime.strptime(current_date, "%Y-%m-%d")
+            cutoff_date = current_date_obj - timedelta(days=30)
+            
+            dates_to_remove = []
+            for date_str in history_data.keys():
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    if date_obj < cutoff_date:
+                        dates_to_remove.append(date_str)
+                except ValueError:
+                    # Skip invalid date formats
+                    logging.warning(f"Invalid date format in history: {date_str}")
+                    continue
+            
+            if dates_to_remove:
+                for old_date in dates_to_remove:
+                    del history_data[old_date]
+                logging.info(f"Cleaned {len(dates_to_remove)} old history entries older than 30 days: {dates_to_remove}")
+            else:
+                logging.debug("No old history entries to clean")
+                
+        except Exception as e:
+            logging.error(f"Error while cleaning old history entries: {e}")
 
     def save_offset(self, widget, device):
         sign = "+" if self.zoffset > 0 else "-"
@@ -318,27 +425,9 @@ class Panel(ScreenPanel):
             logging.info("reseting progress")
             self._printer.data["virtual_sdcard"]["progress"] = 0
         self.update_progress(0.0)
+        # Reset the last print checkbox for next time
+        self.last_print_checkbox.set_active(False)
         self.set_state("printing")
-
-        # --- ENREGISTREMENT DE L'HEURE DE PRINT ---
-        print_times_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'print_times.json')
-        today = datetime.now().strftime("%Y-%m-%d")
-        now_time = datetime.now().strftime("%H:%M")
-        try:
-            if os.path.exists(print_times_file) and os.path.getsize(print_times_file) > 0:
-                with open(print_times_file, 'r', encoding='utf-8') as f:
-                    times_data = json.load(f)
-            else:
-                times_data = {}
-            if today not in times_data:
-                times_data[today] = {"first": now_time, "last": now_time}
-            else:
-                times_data[today]["last"] = now_time
-            with open(print_times_file, 'w', encoding='utf-8') as f:
-                json.dump(times_data, f, indent=2, ensure_ascii=False)
-            logging.info(f"Print times updated: {today} - {times_data[today]}")
-        except Exception as e:
-            logging.error(f"Error while saving print times: {e}")
 
     def process_update(self, action, data):
         if action == "notify_gcode_response":
@@ -491,7 +580,7 @@ class Panel(ScreenPanel):
             if self.zoffset != 0:
                 self._screen._send_action(None, "printer.gcode.script", {"script": "SET_GCODE_OFFSET Z=0 MOVE=1"})
                 self.zoffset = 0.0
-            self.save_print_history()
+            # Don't save print history here anymore - it will be saved when quality is selected
             self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif state == "error":
             self._screen.set_panel_title(_("Error"))
@@ -519,8 +608,10 @@ class Panel(ScreenPanel):
             GLib.timeout_add_seconds(timeout, self.close_panel)
 
     def show_buttons_for_state(self):
-        self.buttons['button_grid'].remove_row(0)
-        self.buttons['button_grid'].insert_row(0)
+        # Clear all children from button grid to ensure clean state
+        for child in self.buttons['button_grid'].get_children():
+            self.buttons['button_grid'].remove(child)
+        
         if self.state == "printing":
             self.buttons['button_grid'].attach(self.buttons['pause'], 0, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
@@ -534,6 +625,10 @@ class Panel(ScreenPanel):
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
             self.enable_button("resume", "cancel")
+            self.can_close = False
+        elif self.state == "complete":
+            # Show quality selection screen (1-8 buttons for good prints)
+            self.show_quality_selection()
             self.can_close = False
         else:
             offset = self._printer.get_stat("gcode_move", "homing_origin")
@@ -560,6 +655,27 @@ class Panel(ScreenPanel):
                 self.buttons['button_grid'].attach(self.buttons['menu'], 3, 0, 1, 1)
                 self.can_close = True
         self.content.show_all()
+
+    def show_quality_selection(self):
+        """Show the quality selection screen with 8 buttons and last print checkbox"""
+        # Grid is already cleared in show_buttons_for_state
+        
+        # Add title label
+        title_label = Gtk.Label(label=_("How many good prints?"))
+        title_label.get_style_context().add_class("printing-status")
+        title_label.set_halign(Gtk.Align.CENTER)
+        self.buttons['button_grid'].attach(title_label, 0, 0, 4, 1)
+        
+        # Add quality buttons 1-4 on first row
+        for i in range(1, 5):
+            self.buttons['button_grid'].attach(self.quality_buttons[f'quality_{i}'], i-1, 1, 1, 1)
+            
+        # Add quality buttons 5-8 on second row
+        for i in range(5, 9):
+            self.buttons['button_grid'].attach(self.quality_buttons[f'quality_{i}'], i-5, 2, 1, 1)
+        
+        # Add last print checkbox on third row
+        self.buttons['button_grid'].attach(self.last_print_checkbox, 0, 3, 4, 1)
 
     def update_filename(self, filename):
         if not filename or filename == self.filename:
@@ -628,41 +744,3 @@ class Panel(ScreenPanel):
             history = self._screen.apiclient.send_request(f"server/history/job?uid={self.file_metadata['job_id']}")
             if history and history['job']['status'] == "completed" and history['job']['print_duration']:
                 self.file_metadata["last_time"] = history['job']['print_duration']
-
-    def save_print_history(self):
-        """Saves the history of the completed print into the JSON file"""
-        if not self.filename:
-            return
-            
-        history_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'history.json')
-        today = datetime.now().strftime("%Y-%m-%d")
-        
-        try:
-            # Read the existing history file
-            if os.path.exists(history_file) and os.path.getsize(history_file) > 0:
-                with open(history_file, 'r', encoding='utf-8') as f:
-                    history_data = json.load(f)
-            else:
-                history_data = {}
-            
-            # Check if the file already exists in history
-            if self.filename in history_data:
-                # The file already exists
-                if today in history_data[self.filename]:
-                    # The day exists, increment the counter
-                    history_data[self.filename][today] += 1
-                else:
-                    # New day for this file
-                    history_data[self.filename][today] = 1
-            else:
-                # First time for this file
-                history_data[self.filename] = {today: 1}
-            
-            # Save the history file
-            with open(history_file, 'w', encoding='utf-8') as f:
-                json.dump(history_data, f, indent=2, ensure_ascii=False)
-                
-            logging.info(f"History saved: {self.filename} - {today} - {history_data[self.filename][today]} print(s)")
-            
-        except Exception as e:
-            logging.error(f"Error while saving history: {e}")
