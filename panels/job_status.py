@@ -211,9 +211,9 @@ class Panel(ScreenPanel):
             'save_offset_endstop': self._gtk.Button("home-z", _("Save Z") + "\n" + "Endstop", "setting_move"),
         }
         
-        # Create quality selection buttons (1-8) for completed state
+        # Create quality selection buttons (0-8) for completed state
         self.quality_buttons = {}
-        for i in range(1, 9):
+        for i in range(9):
             self.quality_buttons[f'quality_{i}'] = self._gtk.Button("complete", str(i), "green")
             self.quality_buttons[f'quality_{i}'].connect("clicked", self.quality_selected, i)
         
@@ -657,25 +657,23 @@ class Panel(ScreenPanel):
         self.content.show_all()
 
     def show_quality_selection(self):
-        """Show the quality selection screen with 8 buttons and last print checkbox"""
+        """Show the quality selection screen with 0-8 buttons (3x3 grid) et la case 'last print'"""
         # Grid is already cleared in show_buttons_for_state
-        
+
         # Add title label
         title_label = Gtk.Label(label=_("How many good prints?"))
         title_label.get_style_context().add_class("printing-status")
         title_label.set_halign(Gtk.Align.CENTER)
-        self.buttons['button_grid'].attach(title_label, 0, 0, 4, 1)
-        
-        # Add quality buttons 1-4 on first row
-        for i in range(1, 5):
-            self.buttons['button_grid'].attach(self.quality_buttons[f'quality_{i}'], i-1, 1, 1, 1)
-            
-        # Add quality buttons 5-8 on second row
-        for i in range(5, 9):
-            self.buttons['button_grid'].attach(self.quality_buttons[f'quality_{i}'], i-5, 2, 1, 1)
-        
-        # Add last print checkbox on third row
-        self.buttons['button_grid'].attach(self.last_print_checkbox, 0, 3, 4, 1)
+        self.buttons['button_grid'].attach(title_label, 0, 0, 3, 1)
+
+        # Add quality buttons 0-8 in a 3x3 grid
+        for i in range(0, 9):
+            row = (i // 3) + 1
+            col = i % 3
+            self.buttons['button_grid'].attach(self.quality_buttons[f'quality_{i}'], col, row, 1, 1)
+
+        # Add last print checkbox on the row after the buttons, spanning all columns
+        self.buttons['button_grid'].attach(self.last_print_checkbox, 0, 4, 3, 1)
 
     def update_filename(self, filename):
         if not filename or filename == self.filename:
