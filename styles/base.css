@@ -981,21 +981,21 @@ keyboard_box {
     background: linear-gradient(145deg, #37474F 0%, #455A64 50%, #37474F 100%);
     /* border: 1px solid #607D8B;
     border-radius: 6px;
-    
+
     Optimized spacing for touch screen
     padding: 14px 18px;
     margin: 8px 12px;
     min-height: 48px; */
-    
+
     /* Clear and readable typography */
     color: #ECEFF1;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 500;
     font-size: 15px;
     letter-spacing: 0.3px;
-    
+
     /* Subtle effects for depth */
-    box-shadow: 
+    box-shadow:
         0 2px 4px rgba(0,0,0,0.15),
         inset 0 1px 0 rgba(255,255,255,0.08);
 }
@@ -1005,18 +1005,18 @@ keyboard_box {
     background: linear-gradient(145deg, #546E7A 0%, #607D8B 50%, #546E7A 100%);
     /* border: 1px solid #78909C;
     border-radius: 6px;
-    
+
     padding: 14px 18px;
     margin: 8px 12px;
     min-height: 48px; */
-    
+
     color: #FFFFFF;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 600;
     font-size: 15px;
     letter-spacing: 0.3px;
-    
-    box-shadow: 
+
+    box-shadow:
         0 2px 4px rgba(0,0,0,0.2),
         inset 0 1px 0 rgba(255,255,255,0.1);
 }
@@ -1026,18 +1026,18 @@ keyboard_box {
     background: linear-gradient(145deg, #424242 0%, #515151 50%, #424242 100%);
     /* border: 1px solid #616161;
     border-radius: 6px;
-    
+
     padding: 14px 18px;
     margin: 8px 12px;
     min-height: 48px; */
-    
+
     color: #E0E0E0;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 500;
     font-size: 15px;
     letter-spacing: 0.3px;
-    
-    box-shadow: 
+
+    box-shadow:
         0 2px 4px rgba(0,0,0,0.12),
         inset 0 1px 0 rgba(255,255,255,0.06);
 }
@@ -1046,16 +1046,16 @@ keyboard_box {
 .main_menu_control {
     /* Row 1: Move & Console - Consistent industrial blue */
     background-color: #2C3E50;
-    
+
     /* Clear and modern typography */
     color: #FFFFFF;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 600;
     font-size: 16px;
     letter-spacing: 0.3px;
-    
+
     /* Visual effects for depth */
-    box-shadow: 
+    box-shadow:
         0 3px 6px rgba(0,0,0,0.18),
         inset 0 1px 0 rgba(255,255,255,0.12);
 }
@@ -1063,14 +1063,14 @@ keyboard_box {
 .main_menu_secondary {
     /* Row 2: Settings & Macros - Consistent industrial gray */
     background-color: #2C3E50;
-    
+
     color: #ECEFF1;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 600;
     font-size: 16px;
     letter-spacing: 0.3px;
-    
-    box-shadow: 
+
+    box-shadow:
         0 3px 6px rgba(0,0,0,0.16),
         inset 0 1px 0 rgba(255,255,255,0.10);
 }
@@ -1078,14 +1078,14 @@ keyboard_box {
 .main_menu_production {
     /* Row 3: Produce - Industrial orange for production */
     background-color: #E67E22;
-    
+
     color: #FFFFFF;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 700;
     font-size: 17px;
     letter-spacing: 0.4px;
-    
-    box-shadow: 
+
+    box-shadow:
         0 4px 8px rgba(0,0,0,0.22),
         inset 0 1px 0 rgba(255,255,255,0.15);
 }
@@ -1093,14 +1093,28 @@ keyboard_box {
 .background_color {
     /* Row 3: Produce - Industrial orange for production */
     background-color: #13181C;
-    
+
     color: #FFFFFF;
     font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     font-weight: 700;
     font-size: 17px;
     letter-spacing: 0.4px;
-    
-    box-shadow: 
+
+    box-shadow:
         0 4px 8px rgba(0,0,0,0.22),
         inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.action-btn {
+    background: #3D5369;
+     color: #fff;
+    border-radius: 50%;
+    font-weight: bold;
+    border: 2px solid #fff;
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 22px;
+
+}
+.orange-label {
+    color: #E67E22;
 }

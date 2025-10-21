@@ -1,24 +1,44 @@
 # -*- coding: utf-8 -*-
+from ks_includes.KlippyGtk import find_widget
+from ks_includes.screen_panel import ScreenPanel
+from time import time
+from statistics import median
+from math import pi, sqrt, trunc
+from gi.repository import GLib, Gtk, Pango
 import logging
 import os
 import json
-from datetime import datetime 
+from datetime import datetime
 
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk, Pango
-from math import pi, sqrt, trunc
-from statistics import median
-from time import time
-from ks_includes.screen_panel import ScreenPanel
-from ks_includes.KlippyGtk import find_widget
 
 
 class Panel(ScreenPanel):
+    # Class variable to store temporary rates per product during session
+    _temp_rates = {}
+
     def __init__(self, screen, title):
         title = title or _("Job Status")
         super().__init__(screen, title)
+        self.product_extrusion_rates = {
+            "Salmon": {
+                "Orange": 40,
+                "White": 70
+            },
+            "EL BLANCO": {
+                "Orange": 80,
+                "White": 90
+            },
+            "VEGANVITA": {
+                "Orange": 80
+            },
+            "PRIME CUT": {
+                "Orange": 55
+            }
+        }
+
         self.thumb_dialog = None
         self.grid = Gtk.Grid(column_homogeneous=True)
         self.pos_z = 0.0
@@ -51,7 +71,6 @@ class Panel(ScreenPanel):
         self.status_grid = None
         self.move_grid = None
         self.time_grid = None
-        self.extrusion_grid = None
 
         data = ['pos_x', 'pos_y', 'pos_z', 'time_left', 'duration', 'slicer_time', 'file_time',
                 'filament_time', 'est_time', 'speed_factor', 'req_speed', 'max_accel', 'extrude_factor', 'zoffset',
@@ -77,6 +96,7 @@ class Panel(ScreenPanel):
         self.labels['flowrate_lbl'] = Gtk.Label(_("Flowrate:"))
         self.labels['height_lbl'] = Gtk.Label(_("Height:"))
         self.labels['layer_lbl'] = Gtk.Label(_("Layer:"))
+
 
         for fan in self._printer.get_fans():
             # fan_types = ["controller_fan", "fan_generic", "heater_fan"]
@@ -111,7 +131,7 @@ class Panel(ScreenPanel):
         self.grid.attach(fi_box, 0, 0, 4, 1)
 
         # Add file icon above the progress circle
-        self.labels['file_icon'] = self._gtk.Image("file", self._gtk.font_size * 12)  
+        self.labels['file_icon'] = self._gtk.Image("file", self._gtk.font_size * 12)
         icon_box = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         icon_box.add(self.labels['file_icon'])
         self.grid.attach(icon_box, 0, 1, 4, 1)
@@ -129,9 +149,9 @@ class Panel(ScreenPanel):
         overlay.set_size_request(*(self._gtk.font_size * 15,) * 2)  # Make it larger
         overlay.add(self.labels['darea'])
         overlay.add_overlay(box)
-        self.grid.attach(overlay, 0, 2, 4, 2)  # Move down to make room for icon
+        # Position the progress circle above the buttons
+        self.grid.attach(overlay, 0, 3, 4, 1)
 
-        # Remove thumbnail and info grid since we don't need them
         self.current_extruder = self._printer.get_stat("toolhead", "extruder")
         if self.current_extruder:
             diameter = float(self._printer.get_config_section(self.current_extruder)['filament_diameter'])
@@ -144,6 +164,146 @@ class Panel(ScreenPanel):
 
         # Remove creation of info grids since we don't need them anymore
         self.content.add(self.grid)
+        # Helper class for custom spin inputs with - and + buttons
+        class CustomSpinBox(Gtk.Box):
+            def __init__(self, min_val, max_val, step, initial_val, callback):
+                super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+
+                # Minus button on the left
+                self.minus_btn = Gtk.Button(label="-")
+                self.minus_btn.get_style_context().add_class("action-btn")
+                self.pack_start(self.minus_btn, False, False, 0)
+
+                # Entry in the middle
+                self.entry = Gtk.Entry()
+                self.entry.set_text(str(initial_val))
+                self.entry.set_width_chars(4)
+                self.entry.set_max_width_chars(4)
+                self.entry.set_alignment(0.5)  # Center text
+                self.pack_start(self.entry, True, True, 0)
+
+                # Plus button on the right
+                self.plus_btn = Gtk.Button(label="+")
+                self.plus_btn.get_style_context().add_class("action-btn")
+                self.pack_start(self.plus_btn, False, False, 0)
+
+                self.min_val = min_val
+                self.max_val = max_val
+                self.step = step
+                self.callback = callback
+
+                def on_plus_clicked(button):
+                    try:
+                        val = float(self.entry.get_text())
+                        val = min(self.max_val, val + self.step)
+                        self.set_value(val)
+                    except ValueError:
+                        self.set_value(initial_val)
+
+                def on_minus_clicked(button):
+                    try:
+                        val = float(self.entry.get_text())
+                        val = max(self.min_val, val - self.step)
+                        self.set_value(val)
+                    except ValueError:
+                        self.set_value(initial_val)
+
+                def on_entry_changed(entry):
+                    try:
+                        val = float(entry.get_text())
+                        val = max(self.min_val, min(self.max_val, val))
+                        self.set_value(val)
+                    except ValueError:
+                        self.set_value(initial_val)
+
+                self.minus_btn.connect("clicked", on_minus_clicked)
+                self.plus_btn.connect("clicked", on_plus_clicked)
+                self.entry.connect("activate", lambda e: on_entry_changed(e))
+
+            def set_value(self, value):
+                self.entry.set_text(str(int(value)))
+                self.callback(value)
+
+            def get_value(self):
+                try:
+                    return float(self.entry.get_text())
+                except ValueError:
+                    return 0.0
+
+            def get_value_as_int(self):
+                try:
+                    return int(float(self.entry.get_text()))
+                except ValueError:
+                    return 0        # Create custom inputs with specific ranges and increments
+        self.orange_input = CustomSpinBox(20, 200, 2, 100, self.on_orange_rate_changed)
+        self.white_input = CustomSpinBox(40, 250, 10, 100, self.on_white_rate_changed)
+
+        # Get current product type from filename if available
+        if self.filename:
+            filename_lower = self.filename.lower()
+            if "salmon" in filename_lower:
+                orange_default = self.product_extrusion_rates["Salmon"]["Orange"]
+                white_default = self.product_extrusion_rates["Salmon"]["White"]
+            elif "blanco" in filename_lower:
+                orange_default = self.product_extrusion_rates["EL BLANCO"]["Orange"]
+                white_default = self.product_extrusion_rates["EL BLANCO"]["White"]
+            elif "veganvita" in filename_lower:
+                orange_default = self.product_extrusion_rates["VEGANVITA"]["Orange"]
+                white_default = 100  # VEGANVITA only uses Orange
+            elif "prime" in filename_lower or "cut" in filename_lower:
+                orange_default = self.product_extrusion_rates["PRIME CUT"]["Orange"]
+                white_default = 100  # PRIME CUT only uses Orange
+            else:
+                orange_default = 100  # Default if no product matched
+                white_default = 100
+        else:
+            orange_default = 100  # Default if no filename
+            white_default = 100
+
+        # Use per-product temp rates if available
+        product_key = self._get_product_key()
+        if product_key in Panel._temp_rates:
+            rates = Panel._temp_rates[product_key]
+            self.orange_input.set_value(rates.get('orange', orange_default))
+            self.white_input.set_value(rates.get('white', white_default))
+        else:
+            self.orange_input.set_value(orange_default)
+            self.white_input.set_value(white_default)
+
+        # Update extrusion rate label with current values
+        orange_value = self.orange_input.get_value_as_int()
+        white_value = self.white_input.get_value_as_int()
+
+
+        # Create input controls for extrusion rates
+        orange_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, halign=Gtk.Align.CENTER)
+        orange_label = Gtk.Label(label=_("Orange extrusion rate"))
+        orange_label.get_style_context().add_class("orange-label")
+        orange_box.add(orange_label)
+        orange_range_label = Gtk.Label(label=_("Range: [20-200]"))
+        orange_range_label.get_style_context().add_class("dim-label")
+        orange_box.add(orange_range_label)
+        orange_default = Panel._temp_rates['orange'] if Panel._temp_rates['orange'] is not None else 100
+        # Orange: min=20, max=200, step=2
+        self.orange_input = CustomSpinBox(20, 200, 2, orange_default, self.on_orange_rate_changed)
+        orange_box.add(self.orange_input)
+
+        white_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, halign=Gtk.Align.CENTER)
+        white_label = Gtk.Label(label=_("White extrusion rate"))
+        white_box.add(white_label)
+        white_range_label = Gtk.Label(label=_("Range: [40-250]"))
+        white_range_label.get_style_context().add_class("dim-label")
+        white_box.add(white_range_label)
+        white_default = Panel._temp_rates['white'] if Panel._temp_rates['white'] is not None else 100
+        # White: min=40, max=250, step=10
+        self.white_input = CustomSpinBox(40, 250, 10, white_default, self.on_white_rate_changed)
+        white_box.add(self.white_input)
+
+    # Add extruder controls to grid with increased spacing between inputs
+        self.extruder_box = Gtk.Box(spacing=120, halign=Gtk.Align.CENTER)
+        self.extruder_box.add(orange_box)
+        self.extruder_box.add(white_box)
+        self.grid.attach(self.extruder_box, 0, 2, 4, 1)
 
     def on_draw(self, da, ctx):
         w = da.get_allocated_width()
@@ -182,6 +342,50 @@ class Panel(ScreenPanel):
         ctx.arc(0, 0, r + self._gtk.font_size * .4, 3 / 2 * pi, 3 / 2 * pi + (self.progress * 2 * pi))
         ctx.stroke()
 
+    def save_current_rates(self):
+        """Save current extrusion rates to config file"""
+        config_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'extrusion_rates.json')
+        current_rates = {
+            'orange': self.orange_input.get_value_as_int(),
+            'white': self.white_input.get_value_as_int()
+        }
+        try:
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(current_rates, f, indent=2)
+            logging.info(f"Saved extrusion rates: Orange={current_rates['orange']}%, White={current_rates['white']}%")
+        except Exception as e:
+            logging.error(f"Error saving extrusion rates: {e}")
+
+    def load_saved_rates(self):
+        """Load saved extrusion rates from config file"""
+        config_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'extrusion_rates.json')
+        try:
+            if os.path.exists(config_file):
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    saved_rates = json.load(f)
+                self.orange_input.set_value(saved_rates.get('orange', 100))
+                self.white_input.set_value(saved_rates.get('white', 100))
+                logging.info(f"Loaded saved extrusion rates: Orange={saved_rates.get('orange')}%, White={saved_rates.get('white')}%")
+        except Exception as e:
+            logging.error(f"Error loading extrusion rates: {e}")
+
+    def on_orange_rate_changed(self, value):
+        new_rate = int(value)
+        self._screen._ws.klippy.gcode_script(f"M221 T0 S{new_rate}")  # Set extrusion rate for orange
+        Panel._temp_rates['orange'] = new_rate  # Store in temporary session storage
+
+    def on_white_rate_changed(self, value):
+        new_rate = int(value)
+        self._screen._ws.klippy.gcode_script(f"M221 T1 S{new_rate}")  # Set extrusion rate for white
+        Panel._temp_rates['white'] = new_rate  # Store in temporary session storage
+
+    def apply_extrusion_rate(self, product, extruder):
+        rate = self.product_extrusion_rates[product][extruder]
+        if extruder == "Orange":
+            self.orange_input.set_value(rate)
+        elif extruder == "White":
+            self.white_input.set_value(rate)
+
     def activate(self):
         if self.flow_timeout is None:
             self.flow_timeout = GLib.timeout_add_seconds(2, self.update_flow)
@@ -210,13 +414,13 @@ class Panel(ScreenPanel):
             'save_offset_probe': self._gtk.Button("home-z", _("Save Z") + "\n" + "Probe", "setting_move"),
             'save_offset_endstop': self._gtk.Button("home-z", _("Save Z") + "\n" + "Endstop", "setting_move"),
         }
-        
+
         # Create quality selection buttons (0-8) for completed state
         self.quality_buttons = {}
         for i in range(9):
             self.quality_buttons[f'quality_{i}'] = self._gtk.Button("complete", str(i), "green")
             self.quality_buttons[f'quality_{i}'].connect("clicked", self.quality_selected, i)
-        
+
         # Create last print checkbox
         self.last_print_checkbox = Gtk.CheckButton(label=_("Last print"))
         self.last_print_checkbox.set_halign(Gtk.Align.CENTER)
@@ -236,10 +440,10 @@ class Panel(ScreenPanel):
         is_last_print = self.last_print_checkbox.get_active()
         good_prints = quality_count
         bad_prints = 8 - quality_count
-        
+
         # Save to history
         self.save_quality_history(good_prints, bad_prints)
-        
+
         if is_last_print:
             # Go back to main menu
             logging.info(f"Last print selected, returning to main menu")
@@ -261,10 +465,10 @@ class Panel(ScreenPanel):
         """Save quality history with good and bad print counts"""
         if not self.filename:
             return
-            
+
         history_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'history.json')
         today = datetime.now().strftime("%Y-%m-%d")
-        
+
         try:
             # Read existing history
             if os.path.exists(history_file) and os.path.getsize(history_file) > 0:
@@ -272,30 +476,30 @@ class Panel(ScreenPanel):
                     history_data = json.load(f)
             else:
                 history_data = {}
-            
+
             # Check if it's the first entry for today (new date)
             is_new_day = today not in history_data
-            
+
             # Initialize date entry if it doesn't exist
             if is_new_day:
                 history_data[today] = {}
                 # Clean old entries (more than 30 days) when adding a new date
                 self.clean_old_history_entries(history_data, today)
-            
+
             # Initialize filename entry if it doesn't exist
             if self.filename not in history_data[today]:
                 history_data[today][self.filename] = {"good": 0, "bad": 0}
-            
+
             # Add the new counts
             history_data[today][self.filename]["good"] += good_prints
             history_data[today][self.filename]["bad"] += bad_prints
-            
+
             # Save the updated history
             with open(history_file, 'w', encoding='utf-8') as f:
                 json.dump(history_data, f, indent=2, ensure_ascii=False)
-                
+
             logging.info(f"Quality history saved: {self.filename} - {today} - Good: {good_prints}, Bad: {bad_prints}")
-            
+
         except Exception as e:
             logging.error(f"Error while saving quality history: {e}")
 
@@ -303,10 +507,10 @@ class Panel(ScreenPanel):
         """Clean history entries older than 30 days"""
         try:
             from datetime import datetime, timedelta
-            
+
             current_date_obj = datetime.strptime(current_date, "%Y-%m-%d")
             cutoff_date = current_date_obj - timedelta(days=30)
-            
+
             dates_to_remove = []
             for date_str in history_data.keys():
                 try:
@@ -317,14 +521,14 @@ class Panel(ScreenPanel):
                     # Skip invalid date formats
                     logging.warning(f"Invalid date format in history: {date_str}")
                     continue
-            
+
             if dates_to_remove:
                 for old_date in dates_to_remove:
                     del history_data[old_date]
                 logging.info(f"Cleaned {len(dates_to_remove)} old history entries older than 30 days: {dates_to_remove}")
             else:
                 logging.debug("No old history entries to clean")
-                
+
         except Exception as e:
             logging.error(f"Error while cleaning old history entries: {e}")
 
@@ -402,6 +606,12 @@ class Panel(ScreenPanel):
             self.enable_button("pause", "cancel")
             return
         logging.debug("Canceling print")
+        # Save current rates for this product before canceling
+        product_key = self._get_product_key()
+        Panel._temp_rates[product_key] = {
+            'orange': self.orange_input.get_value_as_int(),
+            'white': self.white_input.get_value_as_int()
+        }
         self.set_state("cancelling")
         self.disable_button("pause", "resume", "cancel")
         self._screen._ws.klippy.print_cancel()
@@ -424,6 +634,9 @@ class Panel(ScreenPanel):
         if "virtual_sdcard" in self._printer.data:
             logging.info("reseting progress")
             self._printer.data["virtual_sdcard"]["progress"] = 0
+        # Show progress circle and text for new print
+        self.labels['darea'].set_visible(True)
+        self.labels['progress_text'].set_visible(True)
         self.update_progress(0.0)
         # Reset the last print checkbox for next time
         self.last_print_checkbox.set_active(False)
@@ -494,7 +707,7 @@ class Panel(ScreenPanel):
                 self.vel = float(data["motion_report"]["live_velocity"])
             if 'live_extruder_velocity' in data['motion_report']:
                 self.flowstore.append(self.fila_section * float(data["motion_report"]["live_extruder_velocity"]))
-        
+
         # Remove fan processing since we don't display it anymore
         if "print_stats" in data:
             if 'state' in data['print_stats']:
@@ -611,55 +824,59 @@ class Panel(ScreenPanel):
         # Clear all children from button grid to ensure clean state
         for child in self.buttons['button_grid'].get_children():
             self.buttons['button_grid'].remove(child)
-        
-        if self.state == "printing":
-            self.buttons['button_grid'].attach(self.buttons['pause'], 0, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.enable_button("pause", "cancel")
-            self.can_close = False
-        elif self.state == "paused":
-            self.buttons['button_grid'].attach(self.buttons['resume'], 0, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.enable_button("resume", "cancel")
-            self.can_close = False
-        elif self.state == "complete":
+
+        # Show/hide extrusion controls depending on state
+        if self.state == "complete":
+            self.extruder_box.set_visible(False)
             # Show quality selection screen (1-8 buttons for good prints)
             self.show_quality_selection()
             self.can_close = False
         else:
-            offset = self._printer.get_stat("gcode_move", "homing_origin")
-            self.zoffset = float(offset[2]) if offset else 0
-            if self.zoffset != 0:
-                if "Z_OFFSET_APPLY_ENDSTOP" in self._printer.available_commands:
-                    self.buttons['button_grid'].attach(self.buttons["save_offset_endstop"], 0, 0, 1, 1)
+            self.extruder_box.set_visible(True)
+            if self.state == "printing":
+                self.buttons['button_grid'].attach(self.buttons['pause'], 0, 0, 1, 1)
+                self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
+                self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
+                self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
+                self.enable_button("pause", "cancel")
+                self.can_close = False
+            elif self.state == "paused":
+                self.buttons['button_grid'].attach(self.buttons['resume'], 0, 0, 1, 1)
+                self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
+                self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
+                self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
+                self.enable_button("resume", "cancel")
+                self.can_close = False
+            else:
+                offset = self._printer.get_stat("gcode_move", "homing_origin")
+                self.zoffset = float(offset[2]) if offset else 0
+                if self.zoffset != 0:
+                    if "Z_OFFSET_APPLY_ENDSTOP" in self._printer.available_commands:
+                        self.buttons['button_grid'].attach(self.buttons["save_offset_endstop"], 0, 0, 1, 1)
+                    else:
+                        self.buttons['button_grid'].attach(Gtk.Label(), 0, 0, 1, 1)
+                    if "Z_OFFSET_APPLY_PROBE" in self._printer.available_commands:
+                        self.buttons['button_grid'].attach(self.buttons["save_offset_probe"], 1, 0, 1, 1)
+                    else:
+                        self.buttons['button_grid'].attach(Gtk.Label(), 1, 0, 1, 1)
                 else:
                     self.buttons['button_grid'].attach(Gtk.Label(), 0, 0, 1, 1)
-                if "Z_OFFSET_APPLY_PROBE" in self._printer.available_commands:
-                    self.buttons['button_grid'].attach(self.buttons["save_offset_probe"], 1, 0, 1, 1)
-                else:
                     self.buttons['button_grid'].attach(Gtk.Label(), 1, 0, 1, 1)
-            else:
-                self.buttons['button_grid'].attach(Gtk.Label(), 0, 0, 1, 1)
-                self.buttons['button_grid'].attach(Gtk.Label(), 1, 0, 1, 1)
 
-            if self.filename:
-                self.buttons['button_grid'].attach(self.buttons['restart'], 2, 0, 1, 1)
-                self.enable_button("restart")
-            else:
-                self.disable_button("restart")
-            if self.state != "cancelling":
-                self.buttons['button_grid'].attach(self.buttons['menu'], 3, 0, 1, 1)
-                self.can_close = True
+                if self.filename:
+                    self.buttons['button_grid'].attach(self.buttons['restart'], 2, 0, 1, 1)
+                    self.enable_button("restart")
+                else:
+                    self.disable_button("restart")
+                if self.state != "cancelling":
+                    self.buttons['button_grid'].attach(self.buttons['menu'], 3, 0, 1, 1)
+                    self.can_close = True
         self.content.show_all()
+        if self.state == "complete":
+            self.extruder_box.set_visible(False)
 
     def show_quality_selection(self):
         """Show the quality selection screen with 0-8 buttons (3x3 grid) et la case 'last print'"""
-        # Grid is already cleared in show_buttons_for_state
-
         # Add title label
         title_label = Gtk.Label(label=_("How many good prints?"))
         title_label.get_style_context().add_class("printing-status")
@@ -667,13 +884,17 @@ class Panel(ScreenPanel):
         self.buttons['button_grid'].attach(title_label, 0, 0, 3, 1)
 
         # Add quality buttons 0-8 in a 3x3 grid
+
         for i in range(0, 9):
             row = (i // 3) + 1
             col = i % 3
             self.buttons['button_grid'].attach(self.quality_buttons[f'quality_{i}'], col, row, 1, 1)
 
-        # Add last print checkbox on the row after the buttons, spanning all columns
         self.buttons['button_grid'].attach(self.last_print_checkbox, 0, 4, 3, 1)
+        self.buttons['button_grid'].attach(self.buttons['menu'], 0, 5, 3, 1)
+
+        # Always hide extruder_box after building quality selection UI
+        self.extruder_box.set_visible(False)
 
     def update_filename(self, filename):
         if not filename or filename == self.filename:
@@ -681,17 +902,59 @@ class Panel(ScreenPanel):
 
         self.filename = filename
         logging.debug(f"Updating filename to {filename}")
+        filename_lower = filename.lower()
+        # Use per-product temp rates if available, otherwise set to product defaults
+        product_key = self._get_product_key(filename)
+        if product_key in Panel._temp_rates:
+            rates = Panel._temp_rates[product_key]
+            self.orange_input.set_value(rates.get('orange', self.product_extrusion_rates.get(product_key, {}).get('Orange', 100)))
+            self.white_input.set_value(rates.get('white', self.product_extrusion_rates.get(product_key, {}).get('White', 100)))
+        else:
+            # Set to product defaults
+            if product_key in self.product_extrusion_rates:
+                self.orange_input.set_value(self.product_extrusion_rates[product_key].get('Orange', 100))
+                self.white_input.set_value(self.product_extrusion_rates[product_key].get('White', 100))
+            else:
+                self.orange_input.set_value(100)
+                self.white_input.set_value(100)
         self.labels["file"].set_label(os.path.splitext(self.filename)[0])
-        
+
         # Update the file icon based on filename
         icon_name = self.get_file_icon(self.filename)
         self.labels['file_icon'].set_from_pixbuf(self._gtk.PixbufFromIcon(icon_name, self._gtk.font_size * 12))  # Updated to match creation size
-        
+
         self.filename_label = {
             "complete": self.labels['file'].get_label(),
             "current": self.labels['file'].get_label(),
         }
-        
+
+        self.get_file_metadata()
+
+    def _get_product_key(self, filename=None):
+        # Helper to get the product key from filename
+        fname = filename or self.filename or ""
+        fname = fname.lower()
+        if "salmon" in fname:
+            return "Salmon"
+        elif "blanco" in fname:
+            return "EL BLANCO"
+        elif "veganvita" in fname:
+            return "VEGANVITA"
+        elif "prime" in fname or "cut" in fname:
+            return "PRIME CUT"
+        else:
+            return "UNKNOWN"
+        self.labels["file"].set_label(os.path.splitext(self.filename)[0])
+
+        # Update the file icon based on filename
+        icon_name = self.get_file_icon(self.filename)
+        self.labels['file_icon'].set_from_pixbuf(self._gtk.PixbufFromIcon(icon_name, self._gtk.font_size * 12))  # Updated to match creation size
+
+        self.filename_label = {
+            "complete": self.labels['file'].get_label(),
+            "current": self.labels['file'].get_label(),
+        }
+
         self.get_file_metadata()
 
     def animate_label(self):
