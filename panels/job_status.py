@@ -164,6 +164,7 @@ class Panel(ScreenPanel):
 
         # Remove creation of info grids since we don't need them anymore
         self.content.add(self.grid)
+
         # Helper class for custom spin inputs with - and + buttons
         class CustomSpinBox(Gtk.Box):
             def __init__(self, min_val, max_val, step, initial_val, callback):
@@ -235,8 +236,8 @@ class Panel(ScreenPanel):
                     return int(float(self.entry.get_text()))
                 except ValueError:
                     return 0        # Create custom inputs with specific ranges and increments
-        self.orange_input = CustomSpinBox(20, 200, 2, 100, self.on_orange_rate_changed)
-        self.white_input = CustomSpinBox(40, 250, 10, 100, self.on_white_rate_changed)
+        self.orange_input = CustomSpinBox(10, 150, 2, 100, self.on_orange_rate_changed)
+        self.white_input = CustomSpinBox(10, 200, 10, 100, self.on_white_rate_changed)
 
         # Get current product type from filename if available
         if self.filename:
@@ -280,23 +281,20 @@ class Panel(ScreenPanel):
         orange_label = Gtk.Label(label=_("Orange extrusion rate"))
         orange_label.get_style_context().add_class("orange-label")
         orange_box.add(orange_label)
-        orange_range_label = Gtk.Label(label=_("Range: [20-200]"))
+        orange_range_label = Gtk.Label(label=_("Range: [10-150]"))
         orange_range_label.get_style_context().add_class("dim-label")
         orange_box.add(orange_range_label)
-        orange_default = Panel._temp_rates['orange'] if Panel._temp_rates['orange'] is not None else 100
-        # Orange: min=20, max=200, step=2
-        self.orange_input = CustomSpinBox(20, 200, 2, orange_default, self.on_orange_rate_changed)
+        # Orange default coming from temporary per-product storage if available
+        orange_default = Panel._temp_rates.get('orange', 100) if isinstance(Panel._temp_rates, dict) else 100
         orange_box.add(self.orange_input)
 
         white_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, halign=Gtk.Align.CENTER)
         white_label = Gtk.Label(label=_("White extrusion rate"))
         white_box.add(white_label)
-        white_range_label = Gtk.Label(label=_("Range: [40-250]"))
+        white_range_label = Gtk.Label(label=_("Range: [10-200]"))
         white_range_label.get_style_context().add_class("dim-label")
         white_box.add(white_range_label)
-        white_default = Panel._temp_rates['white'] if Panel._temp_rates['white'] is not None else 100
-        # White: min=40, max=250, step=10
-        self.white_input = CustomSpinBox(40, 250, 10, white_default, self.on_white_rate_changed)
+        white_default = Panel._temp_rates.get('white', 100) if isinstance(Panel._temp_rates, dict) else 100
         white_box.add(self.white_input)
 
     # Add extruder controls to grid with increased spacing between inputs
