@@ -1,0 +1,16 @@
+{
+    "Salmon": {
+        "orange": 40,
+        "white": 70
+    },
+    "EL BLANCO": {
+        "orange": 80,
+        "white": 90
+    },
+    "VEGANVITA": {
+        "orange": 80
+    },
+    "PRIME CUT": {
+        "orange": 55
+    }
+}

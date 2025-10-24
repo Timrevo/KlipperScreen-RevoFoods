@@ -22,22 +22,13 @@ class Panel(ScreenPanel):
     def __init__(self, screen, title):
         title = title or _("Job Status")
         super().__init__(screen, title)
-        self.product_extrusion_rates = {
-            "Salmon": {
-                "Orange": 40,
-                "White": 70
-            },
-            "EL BLANCO": {
-                "Orange": 80,
-                "White": 90
-            },
-            "VEGANVITA": {
-                "Orange": 80
-            },
-            "PRIME CUT": {
-                "Orange": 55
-            }
-        }
+
+        self.product_extrusion_rates = {}
+
+        try:
+            self._load_product_defaults()
+        except Exception:
+            pass
 
         self.thumb_dialog = None
         self.grid = Gtk.Grid(column_homogeneous=True)
@@ -242,39 +233,45 @@ class Panel(ScreenPanel):
         # Get current product type from filename if available
         if self.filename:
             filename_lower = self.filename.lower()
-            if "salmon" in filename_lower:
-                orange_default = self.product_extrusion_rates["Salmon"]["Orange"]
-                white_default = self.product_extrusion_rates["Salmon"]["White"]
-            elif "blanco" in filename_lower:
-                orange_default = self.product_extrusion_rates["EL BLANCO"]["Orange"]
-                white_default = self.product_extrusion_rates["EL BLANCO"]["White"]
-            elif "veganvita" in filename_lower:
-                orange_default = self.product_extrusion_rates["VEGANVITA"]["Orange"]
-                white_default = 100  # VEGANVITA only uses Orange
-            elif "prime" in filename_lower or "cut" in filename_lower:
-                orange_default = self.product_extrusion_rates["PRIME CUT"]["Orange"]
-                white_default = 100  # PRIME CUT only uses Orange
-            else:
-                orange_default = 100  # Default if no product matched
+            # Look up defaults from product_extrusion_rates loaded from JSON; fall back to 100
+            try:
+                if "salmon" in filename_lower:
+                    orange_default = self.product_extrusion_rates.get("Salmon", {}).get('Orange', 100)
+                    white_default = self.product_extrusion_rates.get("Salmon", {}).get('White', 100)
+                elif "blanco" in filename_lower:
+                    orange_default = self.product_extrusion_rates.get("EL BLANCO", {}).get('Orange', 100)
+                    white_default = self.product_extrusion_rates.get("EL BLANCO", {}).get('White', 100)
+                elif "veganvita" in filename_lower:
+                    orange_default = self.product_extrusion_rates.get("VEGANVITA", {}).get('Orange', 100)
+                    white_default = 100
+                elif "prime" in filename_lower or "cut" in filename_lower:
+                    orange_default = self.product_extrusion_rates.get("PRIME CUT", {}).get('Orange', 100)
+                    white_default = 100
+                else:
+                    orange_default = 100
+                    white_default = 100
+            except Exception:
+                orange_default = 100
                 white_default = 100
         else:
             orange_default = 100  # Default if no filename
             white_default = 100
 
-        # Use per-product temp rates if available
         product_key = self._get_product_key()
-        if product_key in Panel._temp_rates:
+        try:
+            self.load_saved_rates()
+        except Exception:
+            logging.debug("No saved extrusion rates found or failed to load; using defaults.")
+
+        if product_key in Panel._temp_rates and isinstance(Panel._temp_rates[product_key], dict):
             rates = Panel._temp_rates[product_key]
             self.orange_input.set_value(rates.get('orange', orange_default))
             self.white_input.set_value(rates.get('white', white_default))
         else:
-            self.orange_input.set_value(orange_default)
-            self.white_input.set_value(white_default)
 
-        # Update extrusion rate label with current values
-        orange_value = self.orange_input.get_value_as_int()
-        white_value = self.white_input.get_value_as_int()
-
+            if product_key in self.product_extrusion_rates:
+                self.orange_input.set_value(self.product_extrusion_rates[product_key].get('Orange', orange_default))
+                self.white_input.set_value(self.product_extrusion_rates[product_key].get('White', white_default))
 
         # Create input controls for extrusion rates
         orange_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, halign=Gtk.Align.CENTER)
@@ -297,11 +294,25 @@ class Panel(ScreenPanel):
         white_default = Panel._temp_rates.get('white', 100) if isinstance(Panel._temp_rates, dict) else 100
         white_box.add(self.white_input)
 
+        # Load saved rates (if any) so inputs reflect persisted values on startup
+        try:
+            self.load_saved_rates()
+        except Exception:
+            logging.debug("No saved extrusion rates found or failed to load; using defaults.")
+
     # Add extruder controls to grid with increased spacing between inputs
         self.extruder_box = Gtk.Box(spacing=120, halign=Gtk.Align.CENTER)
         self.extruder_box.add(orange_box)
         self.extruder_box.add(white_box)
-        self.grid.attach(self.extruder_box, 0, 2, 4, 1)
+        extruder_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, halign=Gtk.Align.CENTER)
+        extruder_container.add(self.extruder_box)
+        save_btn_box = Gtk.Box(halign=Gtk.Align.CENTER)
+        self.save_rates_button = Gtk.Button(label=_("Save as default"))
+        self.save_rates_button.get_style_context().add_class("save-button")
+        self.save_rates_button.connect("clicked", self.on_save_clicked)
+        save_btn_box.pack_start(self.save_rates_button, False, False, 0)
+        extruder_container.add(save_btn_box)
+        self.grid.attach(extruder_container, 0, 2, 4, 1)
 
     def on_draw(self, da, ctx):
         w = da.get_allocated_width()
@@ -341,41 +352,140 @@ class Panel(ScreenPanel):
         ctx.stroke()
 
     def save_current_rates(self):
-        """Save current extrusion rates to config file"""
-        config_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'extrusion_rates.json')
+        """Save current extrusion rates to config file.
+
+        Behavior:
+        - Persist both top-level fallback values and a per-product entry.
+        - Clear the temporary session rates after a successful save.
+        """
         current_rates = {
             'orange': self.orange_input.get_value_as_int(),
             'white': self.white_input.get_value_as_int()
         }
         try:
-            with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump(current_rates, f, indent=2)
-            logging.info(f"Saved extrusion rates: Orange={current_rates['orange']}%, White={current_rates['white']}%")
+            data = self._read_rates_file()
+            data['orange'] = current_rates['orange']
+            data['white'] = current_rates['white']
+
+            # also store per-product values under product key
+            product_key = self._get_product_key()
+            if product_key:
+                data[product_key] = {
+                    'orange': current_rates['orange'],
+                    'white': current_rates['white']
+                }
+
+            success = self._write_rates_file(data)
+
+            if success:
+                # Clear temporary session rates as they've been persisted
+                Panel._temp_rates.clear()
+                self._session_rates_changed = False
+                # Show confirmation popup to the user
+                try:
+                    GLib.idle_add(self._screen.show_popup_message, _("Changes saved successfully!"), 1)
+                except Exception:
+                    pass
+                logging.info(f"Saved extrusion rates: Orange={current_rates['orange']}%, White={current_rates['white']}% (product={product_key})")
+            else:
+                logging.error("Failed to save extrusion rates file")
         except Exception as e:
             logging.error(f"Error saving extrusion rates: {e}")
 
-    def load_saved_rates(self):
-        """Load saved extrusion rates from config file"""
-        config_file = os.path.join(os.path.dirname(__file__), '..', 'config', 'extrusion_rates.json')
+    def on_save_clicked(self, widget):
+        """Handler for Save button click: show pressed visual and persist rates."""
+        ctx = widget.get_style_context()
         try:
-            if os.path.exists(config_file):
-                with open(config_file, 'r', encoding='utf-8') as f:
-                    saved_rates = json.load(f)
-                self.orange_input.set_value(saved_rates.get('orange', 100))
-                self.white_input.set_value(saved_rates.get('white', 100))
-                logging.info(f"Loaded saved extrusion rates: Orange={saved_rates.get('orange')}%, White={saved_rates.get('white')}%")
+            # add the visual class
+            ctx.add_class('save-clicked')
+        except Exception:
+            pass
+
+        try:
+            self.save_current_rates()
+        finally:
+            def _remove_class():
+                try:
+                    ctx.remove_class('save-clicked')
+                except Exception:
+                    pass
+                return False
+
+            GLib.timeout_add(600, _remove_class)
+
+    def _rates_file_path(self):
+        return os.path.join(os.path.dirname(__file__), '..', 'config', 'extrusion_rates.json')
+
+    def _read_rates_file(self):
+        path = self._rates_file_path()
+        try:
+            if os.path.exists(path) and os.path.getsize(path) > 0:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f) or {}
+        except Exception:
+            logging.debug("Failed to read extrusion rates file; proceeding with empty data")
+        return {}
+
+    def _write_rates_file(self, data):
+        path = self._rates_file_path()
+        try:
+            # ensure directory exists
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            return True
         except Exception as e:
-            logging.error(f"Error loading extrusion rates: {e}")
+            logging.error(f"Failed writing extrusion rates file: {e}")
+            return False
+
+    def load_saved_rates(self):
+        """Load saved extrusion rates and apply them for the current product.
+
+        Does not overwrite any temporary session values in Panel._temp_rates.
+        """
+        data = self._read_rates_file()
+        product_key = self._get_product_key()
+
+        # Prefer per-product saved values
+        if product_key and isinstance(data.get(product_key), dict):
+            rates = data[product_key]
+            # don't overwrite if user has a temp value for this product
+            temp = Panel._temp_rates.get(product_key, {})
+            if 'orange' not in temp and 'orange' in rates:
+                self.orange_input.set_value(rates.get('orange'))
+            if 'white' not in temp and 'white' in rates:
+                self.white_input.set_value(rates.get('white'))
+            logging.info(f"Loaded per-product saved rates for {product_key}: {rates}")
+            return
+
+        # Fall back to top-level values
+        if 'orange' in data and 'white' in data:
+            temp_global = Panel._temp_rates.get(product_key, {})
+            if 'orange' not in temp_global:
+                self.orange_input.set_value(data.get('orange'))
+            if 'white' not in temp_global:
+                self.white_input.set_value(data.get('white'))
+            logging.info(f"Loaded global saved extrusion rates: orange={data.get('orange')}, white={data.get('white')}")
 
     def on_orange_rate_changed(self, value):
         new_rate = int(value)
         self._screen._ws.klippy.gcode_script(f"M221 T0 S{new_rate}")  # Set extrusion rate for orange
-        Panel._temp_rates['orange'] = new_rate  # Store in temporary session storage
+        # Store per-product temporary rates for the session and mark as changed
+        product_key = self._get_product_key()
+        if product_key:
+            Panel._temp_rates.setdefault(product_key, {})
+            Panel._temp_rates[product_key]['orange'] = new_rate
+        self._session_rates_changed = True
 
     def on_white_rate_changed(self, value):
         new_rate = int(value)
         self._screen._ws.klippy.gcode_script(f"M221 T1 S{new_rate}")  # Set extrusion rate for white
-        Panel._temp_rates['white'] = new_rate  # Store in temporary session storage
+        # Store per-product temporary rates for the session and mark as changed
+        product_key = self._get_product_key()
+        if product_key:
+            Panel._temp_rates.setdefault(product_key, {})
+            Panel._temp_rates[product_key]['white'] = new_rate
+        self._session_rates_changed = True
 
     def apply_extrusion_rate(self, product, extruder):
         rate = self.product_extrusion_rates[product][extruder]
@@ -500,6 +610,16 @@ class Panel(ScreenPanel):
 
         except Exception as e:
             logging.error(f"Error while saving quality history: {e}")
+
+    def _load_product_defaults(self):
+        cfg = self._read_rates_file()
+        for key, val in list(cfg.items()):
+            if isinstance(val, dict):
+                self.product_extrusion_rates.setdefault(key, {})
+                if 'orange' in val:
+                    self.product_extrusion_rates[key]['Orange'] = val['orange']
+                if 'white' in val:
+                    self.product_extrusion_rates[key]['White'] = val['white']
 
     def clean_old_history_entries(self, history_data, current_date):
         """Clean history entries older than 30 days"""
@@ -900,8 +1020,7 @@ class Panel(ScreenPanel):
 
         self.filename = filename
         logging.debug(f"Updating filename to {filename}")
-        filename_lower = filename.lower()
-        # Use per-product temp rates if available, otherwise set to product defaults
+    # Use per-product temp rates if available, otherwise set to product defaults
         product_key = self._get_product_key(filename)
         if product_key in Panel._temp_rates:
             rates = Panel._temp_rates[product_key]
