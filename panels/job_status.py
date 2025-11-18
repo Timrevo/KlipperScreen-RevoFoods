@@ -226,52 +226,19 @@ class Panel(ScreenPanel):
                 try:
                     return int(float(self.entry.get_text()))
                 except ValueError:
-                    return 0        # Create custom inputs with specific ranges and increments
-        self.orange_input = CustomSpinBox(10, 150, 2, 100, self.on_orange_rate_changed)
-        self.white_input = CustomSpinBox(10, 200, 10, 100, self.on_white_rate_changed)
+                    return 0
 
-        # Get current product type from filename if available
-        if self.filename:
-            filename_lower = self.filename.lower()
-            # Look up defaults from product_extrusion_rates loaded from JSON; fall back to 100
-            try:
-                if "salmon" in filename_lower:
-                    orange_default = self.product_extrusion_rates.get("Salmon", {}).get('Orange', 100)
-                    white_default = self.product_extrusion_rates.get("Salmon", {}).get('White', 100)
-                elif "blanco" in filename_lower:
-                    orange_default = self.product_extrusion_rates.get("EL BLANCO", {}).get('Orange', 100)
-                    white_default = self.product_extrusion_rates.get("EL BLANCO", {}).get('White', 100)
-                elif "veganvita" in filename_lower:
-                    orange_default = self.product_extrusion_rates.get("VEGANVITA", {}).get('Orange', 100)
-                    white_default = 100
-                elif "prime" in filename_lower or "cut" in filename_lower:
-                    orange_default = self.product_extrusion_rates.get("PRIME CUT", {}).get('Orange', 100)
-                    white_default = 100
-                else:
-                    orange_default = 100
-                    white_default = 100
-            except Exception:
-                orange_default = 100
-                white_default = 100
-        else:
-            orange_default = 100  # Default if no filename
-            white_default = 100
-
-        product_key = self._get_product_key()
+        # Create custom inputs with JSON defaults (product-specific will be set in update_filename)
         try:
-            self.load_saved_rates()
-        except Exception:
-            logging.debug("No saved extrusion rates found or failed to load; using defaults.")
-
-        if product_key in Panel._temp_rates and isinstance(Panel._temp_rates[product_key], dict):
-            rates = Panel._temp_rates[product_key]
-            self.orange_input.set_value(rates.get('orange', orange_default))
-            self.white_input.set_value(rates.get('white', white_default))
-        else:
-
-            if product_key in self.product_extrusion_rates:
-                self.orange_input.set_value(self.product_extrusion_rates[product_key].get('Orange', orange_default))
-                self.white_input.set_value(self.product_extrusion_rates[product_key].get('White', white_default))
+            data = self._read_rates_file()
+            orange_default = data['orange']
+            white_default = data['white']
+        except Exception as e:
+            logging.debug(f"No saved extrusion rates found; using defaults: {e}")
+            orange_default = 100
+            white_default = 100
+        self.orange_input = CustomSpinBox(10, 150, 2, orange_default, self.on_orange_rate_changed)
+        self.white_input = CustomSpinBox(10, 200, 10, white_default, self.on_white_rate_changed)
 
         # Create input controls for extrusion rates
         orange_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, halign=Gtk.Align.CENTER)
@@ -281,8 +248,6 @@ class Panel(ScreenPanel):
         orange_range_label = Gtk.Label(label=_("Range: [10-150]"))
         orange_range_label.get_style_context().add_class("dim-label")
         orange_box.add(orange_range_label)
-        # Orange default coming from temporary per-product storage if available
-        orange_default = Panel._temp_rates.get('orange', 100) if isinstance(Panel._temp_rates, dict) else 100
         orange_box.add(self.orange_input)
 
         white_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, halign=Gtk.Align.CENTER)
@@ -291,14 +256,7 @@ class Panel(ScreenPanel):
         white_range_label = Gtk.Label(label=_("Range: [10-200]"))
         white_range_label.get_style_context().add_class("dim-label")
         white_box.add(white_range_label)
-        white_default = Panel._temp_rates.get('white', 100) if isinstance(Panel._temp_rates, dict) else 100
         white_box.add(self.white_input)
-
-        # Load saved rates (if any) so inputs reflect persisted values on startup
-        try:
-            self.load_saved_rates()
-        except Exception:
-            logging.debug("No saved extrusion rates found or failed to load; using defaults.")
 
     # Add extruder controls to grid with increased spacing between inputs
         self.extruder_box = Gtk.Box(spacing=120, halign=Gtk.Align.CENTER)
@@ -469,7 +427,40 @@ class Panel(ScreenPanel):
 
     def on_orange_rate_changed(self, value):
         new_rate = int(value)
-        self._screen._ws.klippy.gcode_script(f"M221 T0 S{new_rate}")  # Set extrusion rate for orange
+
+        # Check if printer is actively printing
+        is_printing = self.state in ["printing", "paused"]
+
+        if is_printing:
+            # During printing: Only use direct commands (no T0 macro due to MOVE=1)
+            try:
+                # Update your macro variables for consistency
+                self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_ospeed VALUE={new_rate}")
+                # Apply directly without movement
+                self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder")
+                self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
+                logging.info(f"ORANGE: Set to {new_rate}% via direct M221 (printing mode)")
+            except Exception as e:
+                logging.error(f" ORANGE: Failed to set rate during printing: {e}")
+        else:
+            # When not printing: Use your macro system properly
+            try:
+                # Update both current and initial values in your macro system
+                self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_ospeed VALUE={new_rate}")
+                self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=ini_ospeed VALUE={new_rate}")
+                # Use T0 macro (with movement allowed when not printing)
+                self._screen._ws.klippy.gcode_script("T0")
+                logging.info(f"ORANGE: Set to {new_rate}% via T0 macro system")
+            except Exception as e:
+                # Fallback: Direct commands
+                try:
+                    self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder")
+                    self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
+                    logging.info(f"ORANGE: Set to {new_rate}% via direct method")
+                except Exception as e2:
+                    logging.error(f"ORANGE: All methods failed: {e2}")
+
+
         # Store per-product temporary rates for the session and mark as changed
         product_key = self._get_product_key()
         if product_key:
@@ -479,7 +470,41 @@ class Panel(ScreenPanel):
 
     def on_white_rate_changed(self, value):
         new_rate = int(value)
-        self._screen._ws.klippy.gcode_script(f"M221 T1 S{new_rate}")  # Set extrusion rate for white
+
+        # Check if printer is actively printing
+        is_printing = self.state in ["printing", "paused"]
+
+        if is_printing:
+            # During printing: Only use direct commands (no T1 macro due to MOVE=1)
+            try:
+                # Update your macro variables for consistency
+                self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_wspeed VALUE={new_rate}")
+                # Apply directly without movement
+                self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder1")
+                self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
+                logging.info(f" WHITE: Set to {new_rate}% via direct M221 (printing mode)")
+            except Exception as e:
+                logging.error(f" WHITE: Failed to set rate during printing: {e}")
+        else:
+            # When not printing: Use your macro system properly
+            try:
+                # Update both current and initial values in your macro system
+                self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_wspeed VALUE={new_rate}")
+                self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=ini_wspeed VALUE={new_rate}")
+                # Use T1 macro (with movement allowed when not printing)
+                self._screen._ws.klippy.gcode_script("T1")
+                logging.info(f" WHITE: Set to {new_rate}% via T1 macro system")
+            except Exception as e:
+                # Fallback: Direct commands
+                try:
+                    self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder1")
+                    self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
+                    logging.info(f" WHITE: Set to {new_rate}% via direct method")
+                except Exception as e2:
+                    logging.error(f" WHITE: All methods failed: {e2}")
+
+
+
         # Store per-product temporary rates for the session and mark as changed
         product_key = self._get_product_key()
         if product_key:
@@ -499,6 +524,28 @@ class Panel(ScreenPanel):
             self.flow_timeout = GLib.timeout_add_seconds(2, self.update_flow)
         if self.animation_timeout is None:
             self.animation_timeout = GLib.timeout_add(500, self.animate_label)
+
+        # Force apply current default extrusion rates to printer when panel activates
+        self.force_apply_default_rates()
+
+    def force_apply_default_rates(self):
+        """Force the printer to use the current default extrusion rates"""
+        try:
+            # First, ensure we load the latest JSON values
+            self.load_saved_rates()
+
+            orange_rate = self.orange_input.get_value_as_int()
+            white_rate = self.white_input.get_value_as_int()
+
+            # Apply Orange rate
+            self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder")
+            self._screen._ws.klippy.gcode_script(f"M221 S{orange_rate}")
+
+            # Apply White rate
+            self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder1")
+            self._screen._ws.klippy.gcode_script(f"M221 S{white_rate}")
+        except Exception as e:
+            logging.error(f"Failed to force apply default rates: {e}")
 
     def deactivate(self):
         if self.flow_timeout is not None:
@@ -616,10 +663,11 @@ class Panel(ScreenPanel):
         for key, val in list(cfg.items()):
             if isinstance(val, dict):
                 self.product_extrusion_rates.setdefault(key, {})
+                # Keep lowercase keys consistent with your JSON file
                 if 'orange' in val:
-                    self.product_extrusion_rates[key]['Orange'] = val['orange']
+                    self.product_extrusion_rates[key]['orange'] = val['orange']
                 if 'white' in val:
-                    self.product_extrusion_rates[key]['White'] = val['white']
+                    self.product_extrusion_rates[key]['white'] = val['white']
 
     def clean_old_history_entries(self, history_data, current_date):
         """Clean history entries older than 30 days"""
@@ -758,6 +806,10 @@ class Panel(ScreenPanel):
         self.update_progress(0.0)
         # Reset the last print checkbox for next time
         self.last_print_checkbox.set_active(False)
+
+        # Force apply current extrusion rates at start of new print
+        self.force_apply_default_rates()
+
         self.set_state("printing")
 
     def process_update(self, action, data):
@@ -946,11 +998,13 @@ class Panel(ScreenPanel):
         # Show/hide extrusion controls depending on state
         if self.state == "complete":
             self.extruder_box.set_visible(False)
+            self.save_rates_button.set_visible(False)
             # Show quality selection screen (1-8 buttons for good prints)
             self.show_quality_selection()
             self.can_close = False
         else:
             self.extruder_box.set_visible(True)
+            self.save_rates_button.set_visible(True)
             if self.state == "printing":
                 self.buttons['button_grid'].attach(self.buttons['pause'], 0, 0, 1, 1)
                 self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
@@ -1020,20 +1074,38 @@ class Panel(ScreenPanel):
 
         self.filename = filename
         logging.debug(f"Updating filename to {filename}")
-    # Use per-product temp rates if available, otherwise set to product defaults
+
+        # Load product-specific rates from JSON based on new filename
         product_key = self._get_product_key(filename)
+        data = self._read_rates_file()
+
+        # Check for temporary session rates first
         if product_key in Panel._temp_rates:
             rates = Panel._temp_rates[product_key]
-            self.orange_input.set_value(rates.get('orange', self.product_extrusion_rates.get(product_key, {}).get('Orange', 100)))
-            self.white_input.set_value(rates.get('white', self.product_extrusion_rates.get(product_key, {}).get('White', 100)))
+            orange_rate = rates.get('orange', None)
+            white_rate = rates.get('white', None)
         else:
-            # Set to product defaults
-            if product_key in self.product_extrusion_rates:
-                self.orange_input.set_value(self.product_extrusion_rates[product_key].get('Orange', 100))
-                self.white_input.set_value(self.product_extrusion_rates[product_key].get('White', 100))
+            orange_rate = None
+            white_rate = None
+
+        # If no temp rates, load from JSON
+        if orange_rate is None:
+            if product_key in data and 'orange' in data[product_key]:
+                orange_rate = data[product_key]['orange']
             else:
-                self.orange_input.set_value(100)
-                self.white_input.set_value(100)
+                orange_rate = data['orange']
+
+        if white_rate is None:
+            if product_key in data and 'white' in data[product_key]:
+                white_rate = data[product_key]['white']
+            else:
+                white_rate = data['white']
+
+        # Apply the rates to the inputs
+        self.orange_input.set_value(orange_rate)
+        self.white_input.set_value(white_rate)
+
+        logging.info(f"FILENAME UPDATED: {filename} → Product: {product_key} → Orange: {orange_rate}%, White: {white_rate}%")
         self.labels["file"].set_label(os.path.splitext(self.filename)[0])
 
         # Update the file icon based on filename
@@ -1061,18 +1133,6 @@ class Panel(ScreenPanel):
             return "PRIME CUT"
         else:
             return "UNKNOWN"
-        self.labels["file"].set_label(os.path.splitext(self.filename)[0])
-
-        # Update the file icon based on filename
-        icon_name = self.get_file_icon(self.filename)
-        self.labels['file_icon'].set_from_pixbuf(self._gtk.PixbufFromIcon(icon_name, self._gtk.font_size * 12))  # Updated to match creation size
-
-        self.filename_label = {
-            "complete": self.labels['file'].get_label(),
-            "current": self.labels['file'].get_label(),
-        }
-
-        self.get_file_metadata()
 
     def animate_label(self):
         if ellipsized := self.labels['file'].get_layout().is_ellipsized():
