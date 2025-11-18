@@ -432,34 +432,31 @@ class Panel(ScreenPanel):
         is_printing = self.state in ["printing", "paused"]
 
         if is_printing:
-            # During printing: Only use direct commands (no T0 macro due to MOVE=1)
+            # SAFETY CHECK: Only allow changes to currently active extruder
+            current_extruder = self._printer.get_stat("toolhead", "extruder")
+            if current_extruder != "extruder":  # extruder = orange
+                # Orange is NOT active - BLOCK this change to prevent switching
+                self._screen.show_popup_message(_("Cannot change orange rate: White extruder is currently active!"), 3)
+                logging.warning(f" ORANGE: Blocked change - white extruder is active (current: {current_extruder})")
+                return  # Exit without changing anything
+
+            # Orange IS active - safe to change flow rate
             try:
-                # Update your macro variables for consistency
                 self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_ospeed VALUE={new_rate}")
-                # Apply directly without movement
-                self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder")
+                # NO ACTIVATE_EXTRUDER - just change flow rate of active extruder
                 self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
-                logging.info(f"ORANGE: Set to {new_rate}% via direct M221 (printing mode)")
+                logging.info(f" ORANGE: Set to {new_rate}% (active extruder - no switching)")
             except Exception as e:
-                logging.error(f" ORANGE: Failed to set rate during printing: {e}")
+                logging.error(f" ORANGE: Failed to set rate: {e}")
         else:
-            # When not printing: Use your macro system properly
+            # Not printing - use macro system for full synchronization
             try:
-                # Update both current and initial values in your macro system
                 self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_ospeed VALUE={new_rate}")
                 self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=ini_ospeed VALUE={new_rate}")
-                # Use T0 macro (with movement allowed when not printing)
-                self._screen._ws.klippy.gcode_script("T0")
-                logging.info(f"ORANGE: Set to {new_rate}% via T0 macro system")
+                self._screen._ws.klippy.gcode_script("T0")  # Safe to use macro when not printing
+                logging.info(f" ORANGE: Set to {new_rate}% (macro sync - not printing)")
             except Exception as e:
-                # Fallback: Direct commands
-                try:
-                    self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder")
-                    self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
-                    logging.info(f"ORANGE: Set to {new_rate}% via direct method")
-                except Exception as e2:
-                    logging.error(f"ORANGE: All methods failed: {e2}")
-
+                logging.error(f" ORANGE: Failed to set rate: {e}")
 
         # Store per-product temporary rates for the session and mark as changed
         product_key = self._get_product_key()
@@ -475,35 +472,31 @@ class Panel(ScreenPanel):
         is_printing = self.state in ["printing", "paused"]
 
         if is_printing:
-            # During printing: Only use direct commands (no T1 macro due to MOVE=1)
+            # SAFETY CHECK: Only allow changes to currently active extruder
+            current_extruder = self._printer.get_stat("toolhead", "extruder")
+            if current_extruder != "extruder1":  # extruder1 = white
+                # White is NOT active - BLOCK this change to prevent switching
+                self._screen.show_popup_message(_("Cannot change white rate: Orange extruder is currently active!"), 3)
+                logging.warning(f"🚫 WHITE: Blocked change - orange extruder is active (current: {current_extruder})")
+                return  # Exit without changing anything
+
+            # White IS active - safe to change flow rate
             try:
-                # Update your macro variables for consistency
                 self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_wspeed VALUE={new_rate}")
-                # Apply directly without movement
-                self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder1")
+                # NO ACTIVATE_EXTRUDER - just change flow rate of active extruder
                 self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
-                logging.info(f" WHITE: Set to {new_rate}% via direct M221 (printing mode)")
+                logging.info(f"⚪ WHITE: Set to {new_rate}% (active extruder - no switching)")
             except Exception as e:
-                logging.error(f" WHITE: Failed to set rate during printing: {e}")
+                logging.error(f"⚪ WHITE: Failed to set rate: {e}")
         else:
-            # When not printing: Use your macro system properly
+            # Not printing - use macro system for full synchronization
             try:
-                # Update both current and initial values in your macro system
                 self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=curr_wspeed VALUE={new_rate}")
                 self._screen._ws.klippy.gcode_script(f"SET_GCODE_VARIABLE MACRO=_exvar VARIABLE=ini_wspeed VALUE={new_rate}")
-                # Use T1 macro (with movement allowed when not printing)
-                self._screen._ws.klippy.gcode_script("T1")
-                logging.info(f" WHITE: Set to {new_rate}% via T1 macro system")
+                self._screen._ws.klippy.gcode_script("T1")  # Safe to use macro when not printing
+                logging.info(f" WHITE: Set to {new_rate}% (macro sync - not printing)")
             except Exception as e:
-                # Fallback: Direct commands
-                try:
-                    self._screen._ws.klippy.gcode_script("ACTIVATE_EXTRUDER EXTRUDER=extruder1")
-                    self._screen._ws.klippy.gcode_script(f"M221 S{new_rate}")
-                    logging.info(f" WHITE: Set to {new_rate}% via direct method")
-                except Exception as e2:
-                    logging.error(f" WHITE: All methods failed: {e2}")
-
-
+                logging.error(f" WHITE: Failed to set rate: {e}")
 
         # Store per-product temporary rates for the session and mark as changed
         product_key = self._get_product_key()
